@@ -1,0 +1,31 @@
+{
+  "name": "south-hair-studio",
+  "version": "1.0.0",
+  "description": "South Hair Studio Barbershop Website & Database",
+  "main": "server.js",
+  "scripts": {
+    "dev": "vite",
+    "dev:full": "concurrently -k \"node server.js\" \"vite\"",
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test:supabase": "node database/test_connection.js"
+  },
+  "keywords": [
+    "barbershop",
+    "south-hair-studio",
+    "palopo",
+    "booking-system",
+    "sqlite"
+  ],
+  "author": "South Hair Studio",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "concurrently": "^10.0.6",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "vite": "^8.3.5"
+  }
+}
