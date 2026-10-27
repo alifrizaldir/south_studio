@@ -48,7 +48,7 @@ export default function LoginPage({ onLoginSuccess, onBackToHome }) {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+    <div className="login-page-root">
       <div className="login-wrapper">
         <div className="login-card">
           <div className="login-brand">

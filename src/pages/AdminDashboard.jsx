@@ -515,7 +515,7 @@ export default function AdminDashboard({ onLogout, onBackToHome, onShowToast }) 
   });
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)', width: '100%' }}>
+    <div className="admin-shell" style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)', width: '100%', minWidth: '100%', boxSizing: 'border-box' }}>
       {/* SIDEBAR (MODERN OBSIDIAN DESIGN - IMAGE 4 MATCH) */}
       <aside className="sidebar" id="sidebar">
         <div className="sidebar-main-group">
@@ -781,7 +781,7 @@ export default function AdminDashboard({ onLogout, onBackToHome, onShowToast }) 
 
         {/* BOOKINGS TABLE SECTION (TABS: OVERVIEW & BOOKINGS) */}
         {(activeTab === 'overview' || activeTab === 'bookings') && (
-          <div className="panel-box" style={{ background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: '12px', padding: '24px' }}>
+          <div className="panel-box" style={{ background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: '12px', padding: '24px', width: '100%', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
               <div className="filter-tabs">
                 <button
@@ -949,7 +949,7 @@ export default function AdminDashboard({ onLogout, onBackToHome, onShowToast }) 
 
         {/* SERVICES TAB */}
         {activeTab === 'services' && (
-          <div className="panel-box" style={{ background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: '12px', padding: '24px' }}>
+          <div className="panel-box" style={{ background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: '12px', padding: '24px', width: '100%', boxSizing: 'border-box' }}>
             <div className="admin-module-header">
               <div className="admin-module-title-group">
                 <h3>Katalog Layanan &amp; Tarif Studio</h3>
@@ -1064,7 +1064,7 @@ export default function AdminDashboard({ onLogout, onBackToHome, onShowToast }) 
 
         {/* CAPSTERS TAB */}
         {activeTab === 'capsters' && (
-          <div className="panel-box" style={{ background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: '12px', padding: '24px' }}>
+          <div className="panel-box" style={{ background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: '12px', padding: '24px', width: '100%', boxSizing: 'border-box' }}>
             <div className="admin-module-header">
               <div className="admin-module-title-group">
                 <h3>Tim Capster South Hair Studio</h3>
@@ -1167,7 +1167,7 @@ export default function AdminDashboard({ onLogout, onBackToHome, onShowToast }) 
 
         {/* PRODUCTS TAB */}
         {activeTab === 'products' && (
-          <div className="panel-box" style={{ background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: '12px', padding: '24px' }}>
+          <div className="panel-box" style={{ background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: '12px', padding: '24px', width: '100%', boxSizing: 'border-box' }}>
             <div className="admin-module-header">
               <div className="admin-module-title-group">
                 <h3>Katalog &amp; Inventori Stok Grooming</h3>

@@ -27,13 +27,39 @@
             padding: 0;
         }
 
+        html, body {
+            width: 100%;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        #root {
+            width: 100%;
+            min-width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
         body {
             background-color: var(--bg);
             color: var(--text);
             font-family: var(--font-main);
             min-height: 100vh;
-            display: flex;
+            display: block;
             overflow-x: hidden;
+        }
+
+        .admin-shell {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+            min-width: 100%;
+            box-sizing: border-box;
+            background: var(--bg);
         }
 
         /* --------------------------------------------------------------------------
@@ -376,13 +402,20 @@
            -------------------------------------------------------------------------- */
         .admin-main-viewport {
             margin-left: var(--sidebar-width);
-            flex: 1;
+            flex: 1 1 auto;
+            min-width: 0;
+            width: calc(100% - var(--sidebar-width));
+            max-width: calc(100% - var(--sidebar-width));
+            box-sizing: border-box;
             padding: 28px 36px;
             min-height: 100vh;
             overflow-y: auto;
-            width: calc(100% - var(--sidebar-width));
-            box-sizing: border-box;
             background: var(--bg);
+        }
+
+        .panel-box {
+            width: 100%;
+            box-sizing: border-box;
         }
 
         /* Topbar Header matching Image 4 */
@@ -458,7 +491,7 @@
 
         /* HORIZONTAL ADMIN NAV TABS BAR (MATCHING IMAGE 4 TABS) */
         .admin-nav-tabs-bar {
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 6px;
             margin-bottom: 24px;
@@ -469,6 +502,9 @@
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
+            width: fit-content;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         .admin-nav-tabs-bar::-webkit-scrollbar {
@@ -1620,15 +1656,19 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                        box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                        border-color 0.35s ease;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
             position: relative;
+            will-change: transform, box-shadow;
+            transform: translateZ(0);
         }
 
         .admin-service-card-modern:hover {
             border-color: rgba(245, 158, 11, 0.4);
-            transform: translateY(-3px);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+            transform: translateY(-5px);
+            box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.55), 0 0 20px rgba(245, 158, 11, 0.12);
         }
 
         .service-banner-wrap {
@@ -1643,12 +1683,16 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.4s ease;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
             display: block;
+            will-change: transform;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            transform: translateZ(0) scale(1);
         }
 
         .admin-service-card-modern:hover .service-banner-img {
-            transform: scale(1.06);
+            transform: translateZ(0) scale(1.035);
         }
 
         .service-banner-overlay {
@@ -1774,46 +1818,66 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                        box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                        border-color 0.35s ease;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
             position: relative;
+            will-change: transform, box-shadow;
+            transform: translateZ(0);
         }
 
         .admin-capster-card-modern:hover {
             border-color: rgba(245, 158, 11, 0.4);
-            transform: translateY(-3px);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+            transform: translateY(-5px);
+            box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.55), 0 0 20px rgba(245, 158, 11, 0.12);
         }
 
         .capster-banner-wrap {
             width: 100%;
-            height: 220px;
+            height: 320px;
             position: relative;
             overflow: hidden;
-            background: #090a0e;
+            background: #121319;
+            margin-bottom: -1px;
         }
 
         .capster-banner-img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            object-position: top center;
-            transition: transform 0.4s ease;
+            object-position: center 12%;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
             display: block;
+            will-change: transform;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            transform: translateZ(0) scale(1);
         }
 
         .admin-capster-card-modern:hover .capster-banner-img {
-            transform: scale(1.05);
+            transform: translateZ(0) scale(1.025);
         }
 
         .capster-banner-overlay {
             position: absolute;
-            inset: 0;
-            background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(9,10,13,0.92) 100%);
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: -1px;
+            background: linear-gradient(
+                180deg,
+                rgba(0, 0, 0, 0.35) 0%,
+                rgba(0, 0, 0, 0.05) 25%,
+                transparent 50%,
+                rgba(18, 19, 25, 0.75) 85%,
+                #121319 100%
+            );
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             padding: 14px;
+            pointer-events: none;
         }
 
         .capster-banner-top-row {
@@ -1835,15 +1899,17 @@
         }
 
         .capster-duty-pill.online {
-            background: rgba(34, 197, 94, 0.2);
+            background: rgba(13, 13, 16, 0.85);
             color: #4ade80;
-            border: 1px solid rgba(34, 197, 94, 0.4);
+            border: 1px solid rgba(34, 197, 94, 0.5);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
         }
 
         .capster-duty-pill.offline {
-            background: rgba(113, 113, 122, 0.2);
+            background: rgba(13, 13, 16, 0.85);
             color: #a1a1aa;
-            border: 1px solid rgba(113, 113, 122, 0.4);
+            border: 1px solid rgba(113, 113, 122, 0.5);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
         }
 
         .capster-card-body {
@@ -1981,39 +2047,73 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                        box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                        border-color 0.35s ease;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
             position: relative;
+            will-change: transform, box-shadow;
+            transform: translateZ(0);
         }
 
         .admin-product-card-modern:hover {
             border-color: rgba(245, 158, 11, 0.4);
-            transform: translateY(-3px);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+            transform: translateY(-5px);
+            box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.55), 0 0 20px rgba(245, 158, 11, 0.12);
         }
 
         .product-banner-wrap {
             width: 100%;
-            height: 200px;
+            height: 250px;
             position: relative;
-            background: #0c0d12;
+            background: radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.05) 0%, rgba(20, 21, 28, 0.95) 55%, #0c0d12 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 16px;
+            padding: 20px;
             box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .product-banner-wrap::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 45%, rgba(245, 158, 11, 0.15) 0%, transparent 65%);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+
+        .admin-product-card-modern:hover .product-banner-wrap::before {
+            opacity: 1;
         }
 
         .product-banner-img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            transition: transform 0.4s ease;
+            height: 205px;
+            width: auto;
+            max-width: 82%;
+            aspect-ratio: 9 / 16;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 14px 30px -4px rgba(0, 0, 0, 0.8), 0 2px 10px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                        box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                        border-color 0.4s ease,
+                        filter 0.4s ease;
             display: block;
+            will-change: transform, box-shadow;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            transform: translateZ(0) scale(1);
         }
 
         .admin-product-card-modern:hover .product-banner-img {
-            transform: scale(1.08);
+            transform: translateZ(0) translateY(-4px) scale(1.035);
+            box-shadow: 0 20px 42px -4px rgba(0, 0, 0, 0.92), 0 0 22px rgba(245, 158, 11, 0.22);
+            border-color: rgba(245, 158, 11, 0.5);
+            filter: contrast(1.03) brightness(1.03);
         }
 
         .product-badge-float {
@@ -2171,9 +2271,10 @@
         }
 
         .product-manage-stock-btn:hover {
-            color: #ffffff;
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.25);
+            color: #f59e0b;
+            background: rgba(245, 158, 11, 0.12);
+            border-color: rgba(245, 158, 11, 0.4);
+            box-shadow: 0 2px 10px rgba(245, 158, 11, 0.18);
         }
 
         /* --------------------------------------------------------------------------
@@ -2186,8 +2287,12 @@
             aside.sidebar.mobile-open {
                 transform: translateX(0);
             }
-            main.main-content {
-                margin-left: 0;
+            main.main-content,
+            .admin-main-viewport {
+                margin-left: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 20px 16px !important;
             }
             .btn-menu-toggle {
                 display: block;

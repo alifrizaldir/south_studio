@@ -41,9 +41,10 @@ export default function LayananSection({ onSelectService }) {
   };
 
   return (
-    <section id="layanan" style={{ borderTop: '1px solid var(--line)' }}>
+    <section id="layanan">
       <div className="wrap">
         <div className="section-header center reveal in">
+          <div className="section-kicker">KATALOG &amp; TARIF</div>
           <h2 className="section-title">Katalog Layanan</h2>
           <p className="section-sub">Pilih layanan dan tarif, lalu booking langsung.</p>
         </div>
