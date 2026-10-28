@@ -7,7 +7,7 @@ export default function Navbar({ onNavigate }) {
   const closeMobile = () => setMobileOpen(false);
 
   return (
-    <header>
+    <header className="site-header">
       <nav>
         <a href="#" className="brand-link" aria-label="South Hair Studio Beranda" onClick={closeMobile}>
           <img src="assets/logo_south.png" alt="Logo South Hair Studio" className="brand-logo-img" />
@@ -26,7 +26,7 @@ export default function Navbar({ onNavigate }) {
         <div className="nav-actions">
           <a href="#booking" className="btn btn-sm">Book Kursi</a>
           <button 
-            className={`menu-toggle ${mobileOpen ? 'active' : ''}`} 
+            className={`menu-toggle ${mobileOpen ? 'open active' : ''}`} 
             id="menuToggle" 
             aria-label="Buka Menu Navigasi"
             onClick={toggleMobile}

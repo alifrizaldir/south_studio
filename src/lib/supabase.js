@@ -124,6 +124,61 @@ export async function updateSupabaseProductStock(productId, newStock) {
 // 4. BOOKINGS (Reservasi & Antrean Studio)
 // ==============================================================================
 
+// Helper: Normalisasi data booking & parse info metode pembayaran
+export function enrichBookingPayment(b) {
+  if (!b) return b;
+
+  let paymentMethod = b.payment_method || null;
+  let paymentStatus = b.payment_status || null;
+
+  // 1. Ekstrak dari tag di dalam kolom notes database Supabase, misal: [PAY:tunai] atau [PAY:qris]
+  const notesStr = String(b.notes || '');
+  if (!paymentMethod) {
+    if (notesStr.includes('[PAY:tunai]')) {
+      paymentMethod = 'tunai';
+    } else if (notesStr.includes('[PAY:qris]')) {
+      paymentMethod = 'qris';
+    }
+  }
+
+  // 2. Ekstrak dari local storage client browser jika pernah di-cache
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const localKey = `shs_pay_${b.id || b.booking_code}`;
+      const cached = localStorage.getItem(localKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.payment_method) paymentMethod = parsed.payment_method;
+        if (parsed.payment_status) paymentStatus = parsed.payment_status;
+      }
+    } catch (e) {}
+  }
+
+  // 3. Fallback cerdas berdasarkan status pengerjaan
+  if (!paymentStatus) {
+    if (b.status === 'completed' || b.status === 'confirmed') {
+      paymentStatus = 'paid';
+      if (!paymentMethod) paymentMethod = 'tunai';
+    } else if (b.status === 'cancelled') {
+      paymentStatus = 'cancelled';
+      paymentMethod = 'none';
+    } else {
+      paymentStatus = 'unpaid';
+      paymentMethod = 'none';
+    }
+  }
+
+  // Bersihkan tag teknis [PAY:xxx] dari display notes agar rapi saat dibaca pengguna
+  const cleanNotes = notesStr.replace(/\[PAY:[^\]]+\]/g, '').trim();
+
+  return {
+    ...b,
+    notes: cleanNotes,
+    payment_method: paymentMethod || 'tunai',
+    payment_status: paymentStatus || 'paid'
+  };
+}
+
 export async function getSupabaseBookings() {
   try {
     const { data, error } = await supabase
@@ -132,7 +187,7 @@ export async function getSupabaseBookings() {
       .order('id', { ascending: false })
       .limit(200);
     if (error) throw error;
-    return data;
+    return (data || []).map(enrichBookingPayment);
   } catch (err) {
     console.error('[Supabase] Gagal mengambil bookings:', err.message);
     return null;
@@ -147,6 +202,11 @@ export async function createSupabaseBooking(payload) {
     const randomSuffix = Math.floor(100 + Math.random() * 900);
     const bookingCode = payload.booking_code || `SHS-${dayStr}${monthStr}-${randomSuffix}`;
 
+    let initialNotes = payload.notes || '';
+    if (payload.payment_method) {
+      initialNotes = initialNotes ? `${initialNotes} [PAY:${payload.payment_method}]` : `[PAY:${payload.payment_method}]`;
+    }
+
     const insertData = {
       booking_code: bookingCode,
       customer_name: payload.customer_name,
@@ -158,7 +218,7 @@ export async function createSupabaseBooking(payload) {
       service_price: payload.total_price || payload.service_price || 40000,
       total_amount: payload.total_price || payload.service_price || 40000,
       status: payload.status || 'pending',
-      notes: payload.notes || ''
+      notes: initialNotes
     };
 
     const { data, error } = await supabase
@@ -168,7 +228,7 @@ export async function createSupabaseBooking(payload) {
       .single();
 
     if (error) throw error;
-    return { success: true, booking: data };
+    return { success: true, booking: enrichBookingPayment(data) };
   } catch (err) {
     console.error('[Supabase] Gagal membuat booking:', err.message);
     return { success: false, error: err.message };
@@ -177,18 +237,80 @@ export async function createSupabaseBooking(payload) {
 
 export async function updateSupabaseBooking(bookingId, patchData) {
   try {
+    // 1. Ambil notes saat ini dari Supabase jika ada update metode pembayaran
+    let currentNotes = '';
+    if (patchData.payment_method || patchData.notes !== undefined) {
+      try {
+        const { data: cur } = await supabase
+          .from('bookings')
+          .select('notes')
+          .eq('id', bookingId)
+          .single();
+        if (cur) currentNotes = cur.notes || '';
+      } catch (e) {}
+    }
+
+    // 2. Siapkan payload yang HANYA berisi kolom valid tabel bookings di PostgreSQL Supabase
+    // (Penting: PostgreSQL akan menolak query jika dikirimi kolom yang tidak ada seperti payment_method)
+    const validPayload = {
+      updated_at: new Date().toISOString()
+    };
+
+    if (patchData.status !== undefined) {
+      validPayload.status = patchData.status;
+    } else if (patchData.payment_status === 'paid') {
+      validPayload.status = 'completed';
+    }
+
+    if (patchData.service_price !== undefined) validPayload.service_price = patchData.service_price;
+    if (patchData.total_amount !== undefined) validPayload.total_amount = patchData.total_amount;
+    if (patchData.total_price !== undefined) validPayload.total_amount = patchData.total_price;
+    if (patchData.customer_name !== undefined) validPayload.customer_name = patchData.customer_name;
+    if (patchData.customer_phone !== undefined) validPayload.customer_phone = patchData.customer_phone;
+    if (patchData.service_name !== undefined) validPayload.service_name = patchData.service_name;
+    if (patchData.capster_name !== undefined) validPayload.capster_name = patchData.capster_name;
+    if (patchData.booking_date !== undefined) validPayload.booking_date = patchData.booking_date;
+    if (patchData.booking_time !== undefined) validPayload.booking_time = patchData.booking_time;
+
+    // Simpan metode pembayaran ke dalam notes secara aman: [PAY:tunai] / [PAY:qris]
+    const baseNotes = (patchData.notes !== undefined ? patchData.notes : currentNotes)
+      .replace(/\[PAY:[^\]]+\]/g, '')
+      .trim();
+
+    if (patchData.payment_method) {
+      validPayload.notes = baseNotes ? `${baseNotes} [PAY:${patchData.payment_method}]` : `[PAY:${patchData.payment_method}]`;
+    } else if (patchData.notes !== undefined) {
+      validPayload.notes = baseNotes;
+    }
+
+    // 3. Simpan juga ke localStorage sebagai double-layer cache di browser client
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        localStorage.setItem(`shs_pay_${bookingId}`, JSON.stringify({
+          payment_method: patchData.payment_method || 'tunai',
+          payment_status: patchData.payment_status || 'paid',
+          status: validPayload.status || patchData.status || 'completed'
+        }));
+      } catch (e) {}
+    }
+
+    // 4. Update data ke tabel bookings di Supabase
     const { data, error } = await supabase
       .from('bookings')
-      .update({
-        ...patchData,
-        updated_at: new Date().toISOString()
-      })
+      .update(validPayload)
       .eq('id', bookingId)
       .select()
       .single();
 
     if (error) throw error;
-    return { success: true, booking: data };
+
+    const enriched = enrichBookingPayment({
+      ...data,
+      payment_method: patchData.payment_method,
+      payment_status: patchData.payment_status
+    });
+
+    return { success: true, booking: enriched };
   } catch (err) {
     console.error('[Supabase] Gagal update booking:', err.message);
     return { success: false, error: err.message };

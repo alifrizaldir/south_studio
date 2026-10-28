@@ -137,7 +137,6 @@ export default function ProductSection() {
   const [isAutoSlideActive, setIsAutoSlideActive] = useState(true);
 
   const positionRef = useRef(0);
-  const targetPosRef = useRef(null);
   const isDraggingRef = useRef(false);
   const dragStartXRef = useRef(0);
   const dragStartPosRef = useRef(0);
@@ -157,6 +156,13 @@ export default function ProductSection() {
   const isPointerActiveRef = useRef(false);
   const hasCapturedPointerRef = useRef(false);
   const lastClickTimeRef = useRef(0);
+
+  // Smooth easing animation state refs
+  const animStartPosRef = useRef(0);
+  const animTargetPosRef = useRef(null);
+  const animStartTimeRef = useRef(0);
+  const animDurationRef = useRef(1150);
+  const isTransitioningRef = useRef(false);
 
   const filteredProducts = activeCategory === 'all'
     ? PRODUCTS_DATA
@@ -200,26 +206,36 @@ export default function ProductSection() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Silky time-based easeInOutCubic transition trigger
+  const smoothGoTo = useCallback((target, duration = 1150) => {
+    animStartPosRef.current = positionRef.current;
+    animTargetPosRef.current = target;
+    animStartTimeRef.current = performance.now();
+    animDurationRef.current = duration;
+    isTransitioningRef.current = true;
+  }, []);
+
   const handleCategoryChange = (cat) => {
     setActiveCategory(cat);
     setActiveIdx(0);
     positionRef.current = 0;
-    targetPosRef.current = null;
+    animTargetPosRef.current = null;
+    isTransitioningRef.current = false;
     lastActiveIdxRef.current = 0;
     pauseUntilRef.current = Date.now() + 1000;
     lastAdvanceTimeRef.current = Date.now();
   };
 
-  // Nav arrow click: left (prev) and right (next)
+  // Nav arrow click: left (prev) and right (next) with smooth easing
   const handlePrev = useCallback(() => {
-    targetPosRef.current = Math.round(positionRef.current) - 1;
-    pauseUntilRef.current = Date.now() + 3500;
-  }, []);
+    smoothGoTo(Math.round(positionRef.current) - 1, 950);
+    pauseUntilRef.current = Date.now() + 4000;
+  }, [smoothGoTo]);
 
   const handleNext = useCallback(() => {
-    targetPosRef.current = Math.round(positionRef.current) + 1;
-    pauseUntilRef.current = Date.now() + 3500;
-  }, []);
+    smoothGoTo(Math.round(positionRef.current) + 1, 950);
+    pauseUntilRef.current = Date.now() + 4000;
+  }, [smoothGoTo]);
 
   const handleDotClick = useCallback((targetIdx) => {
     const N = filteredProductsRef.current.length;
@@ -228,9 +244,9 @@ export default function ProductSection() {
     let diff = targetIdx - curModulo;
     if (diff > N / 2) diff -= N;
     if (diff < -N / 2) diff += N;
-    targetPosRef.current = positionRef.current + diff;
-    pauseUntilRef.current = Date.now() + 3500;
-  }, []);
+    smoothGoTo(positionRef.current + diff, 1050);
+    pauseUntilRef.current = Date.now() + 4000;
+  }, [smoothGoTo]);
 
   // Pointer drag gestures with immediate, reliable card click support
   const handlePointerDown = (e) => {
@@ -257,7 +273,8 @@ export default function ProductSection() {
       hasMovedRef.current = true;
       isDraggingRef.current = true;
       setIsDragging(true);
-      targetPosRef.current = null;
+      isTransitioningRef.current = false;
+      animTargetPosRef.current = null;
       try {
         e.currentTarget.setPointerCapture(e.pointerId);
         hasCapturedPointerRef.current = true;
@@ -265,7 +282,7 @@ export default function ProductSection() {
     }
 
     if (isDraggingRef.current) {
-      const cardStep = isMobileRef.current ? 170 : 255;
+      const cardStep = isMobileRef.current ? 130 : 185;
       positionRef.current = dragStartPosRef.current - deltaX / cardStep;
     }
   };
@@ -284,8 +301,8 @@ export default function ProductSection() {
     if (isDraggingRef.current) {
       isDraggingRef.current = false;
       setIsDragging(false);
-      pauseUntilRef.current = Date.now() + 3000;
-      targetPosRef.current = Math.round(positionRef.current);
+      pauseUntilRef.current = Date.now() + 3500;
+      smoothGoTo(Math.round(positionRef.current), 750);
     } else if (!hasMovedRef.current) {
       // Direct tap/click fallback if browser native click event is suppressed by capturing
       const elapsed = Date.now() - pointerDownTimeRef.current;
@@ -311,7 +328,7 @@ export default function ProductSection() {
       if (isDraggingRef.current) {
         isDraggingRef.current = false;
         setIsDragging(false);
-        targetPosRef.current = Math.round(positionRef.current);
+        smoothGoTo(Math.round(positionRef.current), 750);
       }
     }
   };
@@ -337,13 +354,13 @@ export default function ProductSection() {
       let diff = index - curModulo;
       if (diff > N / 2) diff -= N;
       if (diff < -N / 2) diff += N;
-      targetPosRef.current = positionRef.current + diff;
+      smoothGoTo(positionRef.current + diff, 900);
       pauseUntilRef.current = Date.now() + 4500;
     }
     openModal(prod);
   };
 
-  // SILKY-SMOOTH 60FPS CAROUSEL ANIMATION LOOP WITH STABLE CARD DWELL
+  // SILKY-SMOOTH 60FPS CAROUSEL ANIMATION LOOP WITH TIMED EASING & PROGRESSIVE BLUR
   useEffect(() => {
     lastAdvanceTimeRef.current = Date.now();
 
@@ -352,31 +369,40 @@ export default function ProductSection() {
       const N = items.length;
 
       if (N > 0) {
-        const cardStep = isMobileRef.current ? 170 : 255;
+        const cardStep = isMobileRef.current ? 130 : 185;
         const now = Date.now();
+        const perfNow = performance.now();
 
-        // 1. Auto-advance smoothly after resting comfortably at the card
+        // 1. Auto-advance smoothly after resting comfortably at current card
         if (
           isAutoSlideActiveRef.current &&
           !isDraggingRef.current &&
           !isHoveredRef.current &&
           !isModalOpenRef.current &&
-          targetPosRef.current === null &&
+          !isTransitioningRef.current &&
           now > pauseUntilRef.current &&
-          now - lastAdvanceTimeRef.current > 2600
+          now - lastAdvanceTimeRef.current > 2800
         ) {
-          targetPosRef.current = Math.round(positionRef.current) + 1;
+          smoothGoTo(Math.round(positionRef.current) + 1, 1150);
         }
 
-        // 2. Buttery physical spring lerp towards target card
-        if (targetPosRef.current !== null) {
-          const diff = targetPosRef.current - positionRef.current;
-          if (Math.abs(diff) < 0.003) {
-            positionRef.current = targetPosRef.current;
-            targetPosRef.current = null;
+        // 2. Buttery smooth easeInOutCubic interpolator (zero initial kick, zero harsh stop)
+        if (isTransitioningRef.current && animTargetPosRef.current !== null) {
+          const elapsed = perfNow - animStartTimeRef.current;
+          const progress = Math.min(1, Math.max(0, elapsed / animDurationRef.current));
+
+          // easeInOutCubic: smooth acceleration and decelerating float
+          const eased = progress < 0.5
+            ? 4 * progress * progress * progress
+            : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+          positionRef.current = animStartPosRef.current + (animTargetPosRef.current - animStartPosRef.current) * eased;
+
+          if (progress >= 1) {
+            positionRef.current = animTargetPosRef.current;
+            animTargetPosRef.current = null;
+            isTransitioningRef.current = false;
             lastAdvanceTimeRef.current = Date.now();
-          } else {
-            positionRef.current += diff * 0.085;
           }
         }
 
@@ -393,35 +419,45 @@ export default function ProductSection() {
           if (offset > N / 2) offset -= N;
 
           const absOffset = Math.abs(offset);
-          const x = offset * cardStep;
+          const sign = offset >= 0 ? 1 : -1;
 
-          // Scale: 1.12 at center, 0.90 at 1, 0.76 at 2
-          let scale = 1.12 - absOffset * 0.22;
-          if (scale < 0.65) scale = 0.65;
+          // Non-linear perspective compression: removes wide sparse gaps, creates cohesive layered deck
+          const x = sign * (absOffset * cardStep - Math.max(0, absOffset - 1) * (isMobileRef.current ? 10 : 16));
 
-          // Y elevation: Center card elevated higher (-12px), neighbors sit lower (+12px)
-          const y = -12 + Math.min(absOffset, 2.5) * 12;
+          // Scale: 1.12 at center, 0.92 at neighbor 1, 0.78 at outer 2
+          let scale = 1.12 - absOffset * 0.20;
+          if (scale < 0.60) scale = 0.60;
 
-          // Z-index: highest at center
-          const zIndex = Math.round(20 - absOffset * 5);
+          // Y elevation: Center card elevated higher (-12px), neighbors sit lower (+11px)
+          const y = -12 + Math.min(absOffset, 2.5) * 11;
 
-          // Opacity: center 1, neighbor 0.88, outer 0.45, beyond 2.3 hidden
+          // Z-index: highest at center (25), descending outward
+          const zIndex = Math.round(25 - absOffset * 6);
+
+          // Opacity: center 1, neighbor 0.92, outer 0.45, beyond 2.4 fades out
           let opacity = 1;
-          if (absOffset > 2.3) {
+          if (absOffset > 2.4) {
             opacity = 0;
           } else if (absOffset > 1) {
-            opacity = Math.max(0, 0.88 - (absOffset - 1) * 0.45);
+            opacity = Math.max(0, 0.92 - (absOffset - 1) * 0.55);
           } else {
-            opacity = 1 - absOffset * 0.12;
+            opacity = 1 - absOffset * 0.08;
           }
 
-          const brightness = Math.max(0.68, 1 - absOffset * 0.16);
-          const isHidden = absOffset > 2.3;
+          const brightness = Math.max(0.65, 1 - absOffset * 0.18);
+
+          // Dynamic Depth-of-Field Blur: entering and exiting cards blur smoothly into background
+          let blur = 0;
+          if (absOffset > 0.18) {
+            blur = Math.min(10, Math.pow(absOffset - 0.18, 1.45) * 3.6);
+          }
+
+          const isHidden = absOffset > 2.5 || opacity <= 0.01;
 
           el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0px) scale(${scale.toFixed(3)})`;
           el.style.zIndex = zIndex;
           el.style.opacity = opacity.toFixed(3);
-          el.style.filter = `brightness(${brightness.toFixed(2)})`;
+          el.style.filter = `brightness(${brightness.toFixed(2)}) blur(${blur.toFixed(1)}px)`;
           el.style.visibility = isHidden ? 'hidden' : 'visible';
           el.style.pointerEvents = isHidden ? 'none' : 'auto';
         });
@@ -442,7 +478,7 @@ export default function ProductSection() {
         cancelAnimationFrame(animFrameIdRef.current);
       }
     };
-  }, []);
+  }, [smoothGoTo]);
 
   const getWaProductLink = (prod) => {
     const text = encodeURIComponent(
