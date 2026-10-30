@@ -109,10 +109,6 @@ export default function CapsterSection({ onSelectCapster }) {
             >
               <div className="trio-poster-frame">
                 <img src={c.img} alt={`${c.displayName} - Homies Behind The Chair South Hair Studio`} loading="lazy" />
-                <div className="trio-quick-badge">
-                  <span>Pilih</span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                </div>
               </div>
               <div className="trio-label-row">
                 <span className="trio-name">{c.displayName}</span>
@@ -174,10 +170,6 @@ export default function CapsterSection({ onSelectCapster }) {
                       <span className="capster-card-badge">{cap.badge}</span>
                       <div className="capster-card-img-wrap">
                         <img src={cap.img} alt={`${cap.displayName} South Hair Studio`} className="capster-card-img" loading="lazy" />
-                      </div>
-                      <div className="capster-card-quick-cta">
-                        <span>{cap.displayName}</span>
-                        <span>PILIH &rarr;</span>
                       </div>
                     </div>
                   </div>

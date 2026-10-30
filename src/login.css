@@ -1,322 +1,474 @@
 :root {
-            --bg: #09090b;
-            --surface: #121215;
-            --surface-card: rgba(18, 18, 24, 0.75);
-            --line: #26262c;
-            --line-light: rgba(255, 255, 255, 0.14);
-            --text: #f4f4f5;
-            --muted: #a1a1aa;
-            --accent: #d97706;
-            --accent-hover: #f59e0b;
-            --accent-glow: rgba(217, 119, 6, 0.35);
-            --red: #ef4444;
-            --font-main: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-            --font-script: 'Monsieur La Doulaise', cursive;
-        }
+  --font-main: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-script: 'Monsieur La Doulaise', cursive;
+  --login-text: #09090b;
+  --login-muted: #71717a;
+  --login-border: #e4e4e7;
+  --login-border-focus: #09090b;
+}
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-        .login-page-root {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: var(--font-main);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            position: relative;
-            overflow-x: hidden;
-            background-image: 
-                radial-gradient(circle at 15% 20%, rgba(217, 119, 6, 0.08) 0%, transparent 40%),
-                radial-gradient(circle at 85% 80%, rgba(217, 119, 6, 0.05) 0%, transparent 40%),
-                linear-gradient(180deg, #070709 0%, #0c0c10 100%);
-        }
+/* ==========================================================================
+   MODERN MINIMALIST LOGIN ROOT (INSPIRED BY REFERENCE DESIGN)
+   Full-screen atmospheric misty monochrome backdrop with centered glass card
+   ========================================================================== */
+.modern-login-root {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 20px;
+  position: relative;
+  font-family: var(--font-main);
+  background-color: #0b0c0e;
+  background-image: url('/assets/login_bg_clean.jpg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
 
-        /* Subtle Geometric Background Grid - strictly scoped to login page */
-        .login-page-root::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image: 
-                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-            background-size: 40px 40px;
-            pointer-events: none;
-            z-index: 1;
-        }
+/* Atmospheric Fog & Blur Vignette */
+.modern-login-root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(11, 13, 16, 0.42) 0%, rgba(7, 8, 10, 0.85) 100%);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  pointer-events: none;
+  z-index: 1;
+}
 
-        .login-wrapper {
-            width: 100%;
-            max-width: 440px;
-            position: relative;
-            z-index: 2;
-        }
+/* ==========================================================================
+   CENTERED GLASSMORPHIC CARD (TWO-COLUMN DESKTOP / REFLOWS ON MOBILE)
+   ========================================================================== */
+.modern-login-card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 900px;
+  background: #ffffff;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 
+    0 40px 100px -20px rgba(0, 0, 0, 0.65), 
+    0 0 0 1px rgba(255, 255, 255, 0.55),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  animation: modernCardFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
 
-        /* Card Container with Frosted Glass */
-        .login-card {
-            background: var(--surface-card);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid var(--line-light);
-            border-radius: 16px;
-            padding: 40px 36px;
-            box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.8), 0 0 40px rgba(217, 119, 6, 0.1);
-            transition: all 0.3s ease;
-        }
+@keyframes modernCardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
-        .login-card:hover {
-            border-color: rgba(217, 119, 6, 0.4);
-            box-shadow: 0 28px 70px -10px rgba(0, 0, 0, 0.9), 0 0 50px rgba(217, 119, 6, 0.16);
-        }
+/* ==========================================================================
+   LEFT COLUMN: EDITORIAL LOGIN FORM PANE
+   ========================================================================== */
+.modern-login-form-pane {
+  padding: 44px 42px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: #ffffff;
+  box-sizing: border-box;
+}
 
-        /* Brand Header */
-        .login-brand {
-            text-align: center;
-            margin-bottom: 28px;
-        }
+/* Brand Row with studio mark */
+.modern-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
 
-        .login-brand .brand-logo-img {
-            height: 52px;
-            width: auto;
-            max-width: 110px;
-            object-fit: contain;
-            margin: 0 auto 14px;
-            display: block;
-            border: none;
-            border-radius: 0;
-            box-shadow: none;
-            filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.6));
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
+.modern-brand-logo {
+  height: 36px;
+  width: auto;
+  max-width: 80px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15));
+}
 
-        .login-brand .brand-logo-img:hover {
-            transform: scale(1.06);
-        }
+.modern-brand-meta {
+  display: flex;
+  flex-direction: column;
+}
 
-        .login-brand .brand-title {
-            font-family: var(--font-head);
-            font-size: 20px;
-            font-weight: 800;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: #ffffff;
-            margin-bottom: 4px;
-        }
+.modern-brand-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--login-text);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
 
-        .login-brand .brand-script {
-            font-family: var(--font-script);
-            font-size: 32px;
-            color: var(--accent);
-            line-height: 1;
-            display: block;
-            margin-bottom: 6px;
-        }
+.modern-brand-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--login-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
 
-        .login-brand .brand-kicker {
-            font-size: 11.5px;
-            color: var(--muted);
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-        }
+/* Title & Subtitle */
+.modern-login-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--login-text);
+  letter-spacing: -0.03em;
+  margin-bottom: 4px;
+  line-height: 1.15;
+}
 
-        /* Alerts */
-        .alert-error {
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(239, 68, 68, 0.4);
-            color: #fca5a5;
-            padding: 12px 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            margin-bottom: 20px;
-            display: none;
-            align-items: center;
-            gap: 10px;
-            animation: fadeIn 0.25s ease;
-        }
+.modern-login-subtitle {
+  font-size: 13px;
+  color: var(--login-muted);
+  letter-spacing: 0.01em;
+  margin-bottom: 24px;
+  line-height: 1.45;
+}
 
-        /* Form Inputs */
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
+/* Error Alert */
+.modern-alert-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: modernAlertSlideIn 0.25s ease;
+}
 
-        .form-label {
-            display: block;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 8px;
-        }
+@keyframes modernAlertSlideIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-        .input-wrap {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
+/* ==========================================================================
+   FORM INPUTS & LABELS
+   ========================================================================== */
+.modern-form {
+  width: 100%;
+}
 
-        .input-icon {
-            position: absolute;
-            left: 14px;
-            color: #71717a;
-            pointer-events: none;
-            display: flex;
-            align-items: center;
-        }
+.modern-form-group {
+  margin-bottom: 15px;
+  text-align: left;
+}
 
-        .form-input {
-            width: 100%;
-            background: rgba(12, 12, 16, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 10px;
-            padding: 13px 14px 13px 42px;
-            color: #ffffff;
-            font-size: 14px;
-            font-family: inherit;
-            transition: all 0.25s ease;
-            outline: none;
-        }
+.modern-form-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
 
-        .form-input:focus {
-            border-color: var(--accent);
-            background: rgba(18, 18, 24, 0.9);
-            box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.2);
-        }
+.modern-form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #27272a;
+  letter-spacing: 0.02em;
+}
 
-        .form-input::placeholder {
-            color: #52525b;
-        }
+.modern-forgot-link {
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 11.5px;
+  color: var(--login-muted);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+}
 
-        .toggle-password {
-            position: absolute;
-            right: 14px;
-            background: transparent;
-            border: none;
-            color: #71717a;
-            cursor: pointer;
-            padding: 4px;
-            display: flex;
-            align-items: center;
-            transition: color 0.2s ease;
-        }
+.modern-forgot-link:hover {
+  color: var(--login-text);
+  text-decoration: underline;
+}
 
-        .toggle-password:hover {
-            color: #ffffff;
-        }
+.modern-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
 
-        /* Submit Button */
-        .btn-submit {
-            width: 100%;
-            background: linear-gradient(135deg, var(--accent) 0%, #b45309 100%);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #000000;
-            font-family: inherit;
-            font-size: 14px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            padding: 14px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            margin-top: 8px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 6px 20px rgba(217, 119, 6, 0.35);
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        }
+.modern-input-icon {
+  position: absolute;
+  left: 14px;
+  color: #a1a1aa;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
 
-        .btn-submit:hover {
-            background: linear-gradient(135deg, #f59e0b 0%, var(--accent) 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 10px 28px rgba(217, 119, 6, 0.5);
-        }
+.modern-input {
+  width: 100%;
+  border: 1px solid var(--login-border);
+  border-radius: 8px;
+  padding: 12px 14px 12px 38px;
+  font-size: 14.5px;
+  font-family: inherit;
+  color: var(--login-text);
+  background: #ffffff;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
 
-        .btn-submit:active {
-            transform: translateY(0);
-        }
+.modern-input:focus {
+  border-color: var(--login-border-focus);
+  box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.08);
+}
 
-        .btn-submit:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
+.modern-input::placeholder {
+  color: #a1a1aa;
+  font-size: 13.5px;
+}
 
-        /* Demo Credentials Helper Pill */
-        .demo-credentials {
-            margin-top: 28px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            text-align: center;
-        }
+.modern-toggle-password {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: #71717a;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s ease;
+}
 
-        .demo-title {
-            font-size: 11px;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-bottom: 10px;
-        }
+.modern-toggle-password:hover {
+  color: #09090b;
+}
 
-        .demo-pills {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
+/* ==========================================================================
+   SUBMIT BUTTON (SOLID BLACK PILL BUTTON FROM REFERENCE)
+   ========================================================================== */
+.modern-btn-submit {
+  width: 100%;
+  background: #000000;
+  color: #ffffff;
+  border: none;
+  border-radius: 99px;
+  padding: 13px 20px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
 
-        .demo-pill {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            color: #e4e4e7;
-            font-size: 11.5px;
-            font-family: inherit;
-            padding: 6px 12px;
-            border-radius: 999px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
+.modern-btn-submit:hover:not(:disabled) {
+  background: #27272a;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.26);
+}
 
-        .demo-pill:hover {
-            background: rgba(217, 119, 6, 0.2);
-            border-color: rgba(217, 119, 6, 0.5);
-            color: #fbbf24;
-        }
+.modern-btn-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
 
-        /* Footer Link */
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--muted);
-            font-size: 12.5px;
-            text-decoration: none;
-            margin-top: 22px;
-            transition: color 0.2s ease;
-        }
+.modern-btn-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
 
-        .back-link:hover {
-            color: var(--accent);
-        }
+/* Back Link */
+.modern-back-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--login-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+  margin-top: 20px;
+  transition: color 0.2s ease;
+}
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+.modern-back-link:hover {
+  color: var(--login-text);
+}
 
-        @media (max-width: 480px) {
-            body {
-                padding: 16px;
-            }
-            .login-card {
-                padding: 28px 20px;
-                border-radius: 12px;
-            }
-        }
+/* ==========================================================================
+   RIGHT COLUMN: EDITORIAL HALFTONE DITHER ART PANE
+   ========================================================================== */
+.modern-login-art-pane {
+  position: relative;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+}
+
+.modern-art-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: right top;
+  display: block;
+}
+
+/* Seamless blend on left edge */
+.modern-login-art-pane::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 50px;
+  background: linear-gradient(to right, #ffffff 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN FOR ALL SCREEN SIZES & MOBILE DEVICES
+   (iPhone, Galaxy, iPad, Foldables, Small & Large Screens)
+   ========================================================================== */
+
+/* TABLET & COMPACT SCREENS (<= 840px) */
+@media (max-width: 840px) {
+  .modern-login-card {
+    grid-template-columns: 1fr;
+    max-width: 460px;
+    border-radius: 20px;
+  }
+
+  .modern-login-art-pane {
+    height: 135px;
+    order: -1; /* Art banner sits at the top of the card! */
+  }
+
+  .modern-login-art-pane::before {
+    display: none;
+  }
+
+  /* Fade art smoothly into the white form below */
+  .modern-login-art-pane::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background: linear-gradient(to bottom, transparent 0%, #ffffff 100%);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .modern-art-img {
+    object-position: center 30%;
+  }
+
+  .modern-login-form-pane {
+    padding: 24px 28px 30px;
+  }
+}
+
+/* STANDARD SMARTPHONES (<= 480px - iPhone 13/14/15/16, Galaxy S series) */
+@media (max-width: 480px) {
+  .modern-login-root {
+    padding: 16px 12px;
+  }
+
+  .modern-login-card {
+    border-radius: 18px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+  }
+
+  .modern-login-art-pane {
+    height: 110px;
+  }
+
+  .modern-login-form-pane {
+    padding: 18px 18px 24px;
+  }
+
+  .modern-login-title {
+    font-size: 24px;
+  }
+
+  .modern-login-subtitle {
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+
+  /* iOS Safari auto-zoom prevention: font-size must be at least 16px on mobile inputs */
+  .modern-input {
+    font-size: 16px;
+    padding: 11px 12px 11px 36px;
+  }
+
+  .modern-btn-submit {
+    padding: 12px 16px;
+    font-size: 13.5px;
+  }
+
+  .modern-back-link {
+    margin-top: 16px;
+    font-size: 12px;
+  }
+}
+
+/* COMPACT SMARTPHONES (<= 360px - iPhone SE, Galaxy Fold outer display) */
+@media (max-width: 360px) {
+  .modern-login-root {
+    padding: 10px 8px;
+  }
+
+  .modern-login-art-pane {
+    height: 90px;
+  }
+
+  .modern-login-form-pane {
+    padding: 14px 14px 20px;
+  }
+
+  .modern-login-title {
+    font-size: 21px;
+  }
+
+  .modern-brand-row {
+    margin-bottom: 16px;
+  }
+
+  .modern-brand-logo {
+    height: 30px;
+  }
+}

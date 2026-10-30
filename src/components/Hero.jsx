@@ -79,10 +79,10 @@ export default function Hero() {
             <div className="about-text-pane">
               <div className="section-kicker">CERITA &amp; DEDIKASI</div>
               <h2 className="about-title">Tentang Kami</h2>
-              <p>
+              <p style={{ textAlign: 'justify', textJustify: 'inter-word' }}>
                 South Hair Studio berdiri pada 25 Mei 2025, dirintis oleh Kak Ikmal yang sebelumnya bekerja sebagai karyawan di barbershop lain. Kami fokus pada potongan presisi dan perawatan rambut pria, dikerjakan oleh capster yang menguasai gaya klasik maupun modern.
               </p>
-              <p>
+              <p style={{ textAlign: 'justify', textJustify: 'inter-word' }}>
                 Dari gaya kerja harian hingga detail akhir, kami berkomitmen memastikan setiap pelanggan pulang dengan penampilan dan rasa percaya diri yang lebih baik.
               </p>
               <div className="about-features-row">

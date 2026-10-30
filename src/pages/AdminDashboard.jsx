@@ -731,7 +731,7 @@ Terima kasih atas dedikasi dan kerapian hasil cukurmu hari ini! Tetap solid & pr
   };
 
   return (
-    <div className="admin-shell" style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)', width: '100%', minWidth: '100%', boxSizing: 'border-box' }}>
+    <div className="admin-shell" style={{ display: 'flex', minHeight: '100vh', background: '#f4f4f6', color: '#09090b', width: '100%', minWidth: '100%', boxSizing: 'border-box' }}>
       {/* SIDEBAR (MODERN OBSIDIAN DESIGN - IMAGE 4 MATCH) */}
       <aside className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`} id="sidebar">
         <div className="sidebar-main-group">
@@ -1022,7 +1022,7 @@ Terima kasih atas dedikasi dan kerapian hasil cukurmu hari ini! Tetap solid & pr
                 <span className="stat-label">Total Omzet Lunas</span>
                 <span className="stat-pill-badge green">&#8599; Lunas</span>
               </div>
-              <div className="stat-value" style={{ color: '#4ade80' }}>
+              <div className="stat-value" style={{ color: '#059669' }}>
                 Rp {revenueTotal.toLocaleString('id-ID')}
               </div>
               <div className="stat-sub">Gabungan Tunai &amp; QRIS lunas</div>
@@ -1288,21 +1288,26 @@ Terima kasih atas dedikasi dan kerapian hasil cukurmu hari ini! Tetap solid & pr
 
                     <div className="service-card-body">
                       <div>
-                        <h4 className="service-title-text">{svc.name}</h4>
+                        <h4 className="service-title-text" title={svc.name}>{svc.name}</h4>
                         <p className="service-desc-text">{svc.description}</p>
                       </div>
 
                       <div className="service-footer-row">
                         <div>
-                          <div style={{ fontSize: '10.5px', color: 'var(--muted-dark)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tarif Layanan</div>
+                          <div className="service-price-lbl">Tarif Layanan</div>
                           <div className="service-price-val">Rp {Number(svc.price).toLocaleString('id-ID')}</div>
                         </div>
                         <button
                           type="button"
                           className="service-edit-btn"
                           onClick={() => handleOpenEditPrice(svc)}
+                          title="Ubah tarif layanan"
                         >
-                          Ubah Tarif
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9"/>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                          </svg>
+                          <span>Ubah Tarif</span>
                         </button>
                       </div>
                     </div>
@@ -1720,12 +1725,12 @@ Terima kasih atas dedikasi dan kerapian hasil cukurmu hari ini! Tetap solid & pr
             {/* 4 KPI Summary Cards */}
             <div className="stat-grid" style={{ marginBottom: '28px' }}>
               {/* Card 1: Total Omset */}
-              <div className="stat-card" style={{ borderColor: 'rgba(217, 119, 6, 0.35)' }}>
+              <div className="stat-card">
                 <div className="stat-header">
                   <span className="stat-label">Total Omset Jasa</span>
-                  <span className="stat-pill-badge" style={{ background: 'rgba(217, 119, 6, 0.15)', color: '#f59e0b' }}>Gross</span>
+                  <span className="stat-pill-badge amber">Gross</span>
                 </div>
-                <div className="stat-value" style={{ color: '#f59e0b' }}>
+                <div className="stat-value" style={{ color: '#d97706' }}>
                   Rp {commTotalGross.toLocaleString('id-ID')}
                 </div>
                 <div className="stat-sub">
@@ -1734,12 +1739,12 @@ Terima kasih atas dedikasi dan kerapian hasil cukurmu hari ini! Tetap solid & pr
               </div>
 
               {/* Card 2: Hak Komisi Capster */}
-              <div className="stat-card" style={{ borderColor: 'rgba(34, 197, 94, 0.35)' }}>
+              <div className="stat-card">
                 <div className="stat-header">
                   <span className="stat-label">Hak Komisi Capster</span>
                   <span className="stat-pill-badge green">{commissionRate}% Payout</span>
                 </div>
-                <div className="stat-value" style={{ color: '#22c55e' }}>
+                <div className="stat-value" style={{ color: '#059669' }}>
                   Rp {commCapsterShareTotal.toLocaleString('id-ID')}
                 </div>
                 <div className="stat-sub">
@@ -1748,12 +1753,12 @@ Terima kasih atas dedikasi dan kerapian hasil cukurmu hari ini! Tetap solid & pr
               </div>
 
               {/* Card 3: Kas Bersih Studio */}
-              <div className="stat-card" style={{ borderColor: 'rgba(59, 130, 246, 0.35)' }}>
+              <div className="stat-card">
                 <div className="stat-header">
                   <span className="stat-label">Kas Bersih Studio</span>
                   <span className="stat-pill-badge blue">{100 - commissionRate}% Kas South</span>
                 </div>
-                <div className="stat-value" style={{ color: '#38bdf8' }}>
+                <div className="stat-value" style={{ color: '#2563eb' }}>
                   Rp {commStudioShareTotal.toLocaleString('id-ID')}
                 </div>
                 <div className="stat-sub">
@@ -1978,7 +1983,7 @@ Terima kasih atas dedikasi dan kerapian hasil cukurmu hari ini! Tetap solid & pr
                               </span>
                             </td>
                             <td>
-                              <span style={{ fontWeight: 600, color: '#f4f4f5' }}>
+                              <span style={{ fontWeight: 700, color: '#09090b' }}>
                                 {normalizeCapsterName(b.capster_name)}
                               </span>
                             </td>
@@ -1986,17 +1991,17 @@ Terima kasih atas dedikasi dan kerapian hasil cukurmu hari ini! Tetap solid & pr
                               <b>{b.service_name}</b>
                             </td>
                             <td>
-                              <b style={{ color: 'var(--accent)' }}>
+                              <b style={{ color: '#09090b' }}>
                                 Rp {price.toLocaleString('id-ID')}
                               </b>
                             </td>
                             <td>
-                              <b style={{ color: '#22c55e' }}>
+                              <b style={{ color: '#059669' }}>
                                 Rp {capShare.toLocaleString('id-ID')}
                               </b>
                             </td>
                             <td>
-                              <b style={{ color: '#38bdf8' }}>
+                              <b style={{ color: '#2563eb' }}>
                                 Rp {stuShare.toLocaleString('id-ID')}
                               </b>
                             </td>
@@ -2108,7 +2113,7 @@ Terima kasih atas dedikasi dan kerapian hasil cukurmu hari ini! Tetap solid & pr
             <form onSubmit={handleSavePrice}>
               <div className="modal-body">
                 <div style={{ marginBottom: '14px' }}>
-                  <b style={{ color: '#fff', fontSize: '15px' }}>{editingService.name}</b>
+                  <b style={{ color: 'var(--text)', fontSize: '15px' }}>{editingService.name}</b>
                   <p style={{ color: 'var(--muted)', fontSize: '12px', marginTop: '4px' }}>
                     {editingService.category_name} &bull; Durasi {editingService.duration || '45 Menit'}
                   </p>
@@ -2154,7 +2159,7 @@ Terima kasih atas dedikasi dan kerapian hasil cukurmu hari ini! Tetap solid & pr
             <form onSubmit={handleSaveStock}>
               <div className="modal-body">
                 <div style={{ marginBottom: '14px' }}>
-                  <b style={{ color: '#fff', fontSize: '15px' }}>{editingProduct.name}</b>
+                  <b style={{ color: 'var(--text)', fontSize: '15px' }}>{editingProduct.name}</b>
                   <p style={{ color: 'var(--muted)', fontSize: '12px', marginTop: '4px' }}>
                     {editingProduct.category_name} &bull; {editingProduct.weight_volume}
                   </p>

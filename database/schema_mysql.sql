@@ -383,14 +383,14 @@ VALUES
 -- 9. GALLERY
 INSERT INTO `gallery` (`id`, `title`, `category`, `image_url`, `capster_id`, `description`, `likes_count`, `is_active`, `display_order`)
 VALUES
-(1, 'WARRIORCUT', 'Short Cut', 'assets/galeri_south/warrior_cut.png', 1, 'Potongan presisi tegas bergaya warrior', 128, 1, 1),
-(2, 'FRINGE', 'Korean Style', 'assets/galeri_south/fringe.png', 2, 'Gaya poni modern dengan tekstur lembut', 95, 1, 2),
-(3, 'TEXTURE', 'Textured Cut', 'assets/galeri_south/texture.png', 3, 'Tekstur acak dinamis bervolume tinggi', 142, 1, 3),
-(4, 'FADE', 'Classic Fade', 'assets/galeri_south/fade.png', 2, 'Gradasi kulit halus super bersih', 110, 1, 4),
-(5, 'TAPER FADE', 'Taper Fade', 'assets/galeri_south/taper_fade.png', 1, 'Transisi taper rapi di pelipis dan tengkuk', 88, 1, 5),
-(6, 'WARRIORCUT2', 'Short Cut', 'assets/galeri_south/warrior_cut2.png', 1, 'Variasi military warrior cut tajam', 76, 1, 6),
-(7, 'FRINGE2', 'Korean Style', 'assets/galeri_south/fringe2.png', 3, 'Messy fringe ala cowok Korea', 119, 1, 7),
-(8, 'MULLET, TAPER', 'Modern Mullet', 'assets/galeri_south/mullet_taper.png', 3, 'Kombinasi modern mullet berpadu clean taper', 165, 1, 8);
+(1, 'WARRIORCUT', 'Signature Cut', 'assets/galeri_south/Image (Warriorcut).png', 1, 'Potongan presisi tegas bergaya warrior', 128, 1, 1),
+(2, 'FRINGE', 'Korean Style', 'assets/galeri_south/Image (fringe)-2.png', 2, 'Gaya poni modern dengan tekstur ikal lembut', 95, 1, 2),
+(3, 'TEXTURE', 'Textured Cut', 'assets/galeri_south/Image (Texture).png', 3, 'Tekstur acak dinamis bervolume tinggi', 142, 1, 3),
+(4, 'FADE', 'Classic Fade', 'assets/galeri_south/Image (Fade).png', 2, 'Gradasi kulit halus super bersih dan rapi', 110, 1, 4),
+(5, 'TAPER, TAPER FADE, TEMPLE TAPER', 'Taper Fade', 'assets/galeri_south/Image (Taper, Taper Fade, Temple Taper).png', 1, 'Transisi taper rapi di pelipis dan tengkuk leher', 88, 1, 5),
+(6, 'FRINGE 2', 'Modern Fringe', 'assets/galeri_south/Image (fringe)-1.png', 1, 'Spiky textured fringe dengan siluet tajam modern', 76, 1, 6),
+(7, 'FRINGE 3', 'Casual Fringe', 'assets/galeri_south/Image (fringe).png', 3, 'Forward crop fringe santai dengan gradasi samping rapi', 119, 1, 7),
+(8, 'MULLET', 'Modern Mullet', 'assets/galeri_south/Image (mullet).png', 3, 'Modern mullet berpadu clean taper stylish', 165, 1, 8);
 
 -- 10. REVIEWS (Ulasan Pelanggan Palopo)
 INSERT INTO `reviews` (`id`, `customer_name`, `rating`, `review_text`, `capster_id`, `is_verified`, `is_displayed`)
