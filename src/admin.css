@@ -3327,9 +3327,9 @@
 }
 
 .admin-shell .badge-pay.cash {
-    background: #f4f4f5 !important;
-    color: #27272a !important;
-    border: 1px solid #e4e4e7 !important;
+    background: #ecfdf5 !important;
+    color: #047857 !important;
+    border: 1px solid #a7f3d0 !important;
 }
 
 .admin-shell .badge-pay.qris {
@@ -3344,15 +3344,18 @@
 
 /* Table action buttons */
 .admin-shell .btn-act.pay-cash {
-    background: #09090b !important;
+    background: #059669 !important;
     color: #ffffff !important;
-    border: 1px solid #09090b !important;
+    border: 1px solid #059669 !important;
     border-radius: 6px !important;
     font-weight: 700 !important;
 }
 
 .admin-shell .btn-act.pay-cash:hover {
-    background: #27272a !important;
+    background: #047857 !important;
+    border-color: #047857 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 3px 10px rgba(5, 150, 105, 0.3) !important;
 }
 
 .admin-shell .btn-act.pay-qris {
@@ -4022,9 +4025,9 @@
 }
 
 .admin-shell .badge-pay.cash {
-    background: #f4f4f5 !important;
-    color: #18181b !important;
-    border: 1px solid #d4d4d8 !important;
+    background: #ecfdf5 !important;
+    color: #047857 !important;
+    border: 1px solid #a7f3d0 !important;
 }
 
 .admin-shell .badge-pay.qris {
@@ -4060,16 +4063,16 @@
 }
 
 .admin-shell .btn-act.pay-cash {
-    background: #09090b !important;
+    background: #059669 !important;
     color: #ffffff !important;
-    border: 1px solid #09090b !important;
+    border: 1px solid #059669 !important;
 }
 
 .admin-shell .btn-act.pay-cash:hover {
-    background: #27272a !important;
-    border-color: #27272a !important;
+    background: #047857 !important;
+    border-color: #047857 !important;
     transform: translateY(-1px) !important;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 3px 10px rgba(5, 150, 105, 0.3) !important;
 }
 
 .admin-shell .btn-act.pay-qris {
@@ -4087,15 +4090,54 @@
 
 .admin-shell .btn-act.cancel-btn {
     background: #ffffff !important;
+    color: #d97706 !important;
+    border: 1px solid #fde68a !important;
+}
+
+.admin-shell .btn-act.cancel-btn:hover {
+    background: #fffbeb !important;
+    color: #b45309 !important;
+    border-color: #f59e0b !important;
+    transform: translateY(-1px) !important;
+}
+
+.admin-shell .btn-act.delete-btn {
+    background: #ffffff !important;
     color: #dc2626 !important;
     border: 1px solid #fca5a5 !important;
 }
 
-.admin-shell .btn-act.cancel-btn:hover {
-    background: #fef2f2 !important;
-    color: #b91c1c !important;
-    border-color: #f87171 !important;
+.admin-shell .btn-act.delete-btn:hover {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+    border-color: #dc2626 !important;
     transform: translateY(-1px) !important;
+    box-shadow: 0 3px 8px rgba(220, 38, 38, 0.25) !important;
+}
+
+.admin-shell .btn-reset-all-bookings {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    background: #ffffff !important;
+    border: 1px solid #fca5a5 !important;
+    color: #dc2626 !important;
+    padding: 7px 13px !important;
+    border-radius: 8px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    white-space: nowrap !important;
+    box-shadow: 0 1px 2px rgba(220, 38, 38, 0.05) !important;
+}
+
+.admin-shell .btn-reset-all-bookings:hover {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+    border-color: #dc2626 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25) !important;
 }
 
 /* 7. OTHER MODULES (SERVICES, CAPSTERS, PRODUCTS, COMMISSIONS) */

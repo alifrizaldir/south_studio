@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { createSupabaseBooking } from '../lib/supabase';
+import {
+  createSupabaseBooking,
+  getActiveBookingsForDate,
+  normalizeCapsterName,
+  supabase,
+  isSupabaseConfigured
+} from '../lib/supabase';
 
 const TIME_SLOTS = [
   '10:00', '11:00', '12:00', '13:00',
@@ -45,9 +51,69 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
   const [custPhone, setCustPhone] = useState('');
   const [custNotes, setCustNotes] = useState('');
 
-  // Ticket
+  // Ticket & Booking status
   const [confirmedTicket, setConfirmedTicket] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Active bookings list from Supabase for slot collision detection
+  const [activeBookings, setActiveBookings] = useState([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [slotAlert, setSlotAlert] = useState(null);
+
+  const formattedDateStr = `${selectedDay} ${MONTH_NAMES[currentMonth]} ${currentYear}`;
+  const isoDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
+
+  // Fetch active bookings for the selected date from Supabase
+  const loadBookingsForDate = async (dateStr) => {
+    setIsLoadingSlots(true);
+    try {
+      const data = await getActiveBookingsForDate(dateStr);
+      setActiveBookings(data || []);
+    } catch (err) {
+      console.error('Gagal mengambil slot booking Supabase:', err);
+    } finally {
+      setIsLoadingSlots(false);
+    }
+  };
+
+  useEffect(() => {
+    loadBookingsForDate(isoDateStr);
+  }, [isoDateStr]);
+
+  // Realtime listener: jika ada pemesanan baru atau pembatalan, perbarui slot langsung secara realtime
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    const channel = supabase
+      .channel(`public:bookings:${isoDateStr}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bookings' },
+        () => {
+          loadBookingsForDate(isoDateStr);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isoDateStr]);
+
+  // Cek apakah slot jam tertentu untuk capster yang dipilih sudah terisi
+  const isSlotBooked = (slotStr, targetCapster = capster) => {
+    if (!activeBookings || activeBookings.length === 0) return false;
+    const targetTime = slotStr.slice(0, 5);
+    const normTarget = normalizeCapsterName(targetCapster);
+
+    return activeBookings.some((b) => {
+      if (b.status === 'cancelled') return false;
+      const bTime = String(b.booking_time || '').slice(0, 5);
+      const bCapster = normalizeCapsterName(b.capster_name);
+      return bTime === targetTime && bCapster === normTarget;
+    });
+  };
+
+  const isCurrentSlotBooked = isSlotBooked(time, capster);
 
   useEffect(() => {
     if (selectedService) {
@@ -58,8 +124,38 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
   useEffect(() => {
     if (selectedCapster) {
       setCapster(selectedCapster);
+      if (isSlotBooked(time, selectedCapster)) {
+        setSlotAlert(`⚠️ Slot jam ${time} WITA untuk ${selectedCapster} sudah terisi. Silakan pilih jam lain.`);
+      }
     }
   }, [selectedCapster]);
+
+  const handleCapsterChange = (newCapster) => {
+    setCapster(newCapster);
+    if (isSlotBooked(time, newCapster)) {
+      const msg = `⚠️ Slot jam ${time} WITA untuk ${newCapster} sudah terisi. Silakan pilih jam yang tersedia.`;
+      setSlotAlert(msg);
+      if (onShowToast) onShowToast(msg);
+    } else {
+      setSlotAlert(null);
+    }
+  };
+
+  const handleSlotClick = (slotStr) => {
+    if (isSlotPast(slotStr)) return;
+
+    if (isSlotBooked(slotStr, capster)) {
+      const msg = `⚠️ Slot jam ${slotStr} WITA untuk capster ${capster} sudah terisi oleh pelanggan lain. Silakan pilih jam lain.`;
+      setSlotAlert(msg);
+      if (onShowToast) {
+        onShowToast(msg);
+      }
+      return;
+    }
+
+    setTime(slotStr);
+    setSlotAlert(null);
+  };
 
   // Calendar matrix calculation
   const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
@@ -128,20 +224,25 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
   // Auto-adjust time slot if user picks today and currently selected slot has expired
   useEffect(() => {
     if (isSelectedDateToday && isSlotPast(time)) {
-      const available = TIME_SLOTS.find((s) => !isSlotPast(s));
+      const available = TIME_SLOTS.find((s) => !isSlotPast(s) && !isSlotBooked(s));
       if (available) {
         setTime(available);
       }
     }
   }, [selectedDay, currentMonth, currentYear]);
 
-  const formattedDateStr = `${selectedDay} ${MONTH_NAMES[currentMonth]} ${currentYear}`;
-  const isoDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!custName.trim() || !custPhone.trim()) {
       alert('Mohon isi nama lengkap dan nomor WhatsApp Anda.');
+      return;
+    }
+
+    if (isSlotBooked(time, capster)) {
+      const msg = `Maaf, slot pukul ${time} WITA untuk capster ${capster} pada tanggal ${formattedDateStr} sudah terisi oleh pelanggan lain.\nSilakan pilih jam lain yang masih tersedia.`;
+      alert(msg);
+      setSlotAlert(`⚠️ ${msg}`);
+      if (onShowToast) onShowToast(msg);
       return;
     }
 
@@ -158,10 +259,17 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
     };
 
     try {
-      // Simpan langsung ke Supabase
-      const data = await createSupabaseBooking(bookingPayload);
+      // Simpan langsung ke Supabase dengan pengecekan ganda di server
+      const result = await createSupabaseBooking(bookingPayload);
 
-      const bookingCode = data?.booking?.booking_code || `SHS-${selectedDay}${currentMonth + 1}-${Math.floor(100 + Math.random() * 900)}`;
+      if (result && result.success === false) {
+        alert(result.error || 'Maaf, slot jam ini sudah terisi untuk capster tersebut. Silakan pilih jam lain.');
+        await loadBookingsForDate(isoDateStr);
+        setIsSubmitting(false);
+        return;
+      }
+
+      const bookingCode = result?.booking?.booking_code || `SHS-${selectedDay}${currentMonth + 1}-${Math.floor(100 + Math.random() * 900)}`;
       const ticket = {
         code: bookingCode,
         name: custName.trim(),
@@ -172,6 +280,7 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
         price: service.priceStr
       };
       setConfirmedTicket(ticket);
+      await loadBookingsForDate(isoDateStr);
       if (onShowToast) onShowToast(`Kursi Anda berhasil terkunci! Kode: ${ticket.code}`);
     } catch (err) {
       // Local fallback in case offline
@@ -196,6 +305,7 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
     setCustName('');
     setCustPhone('');
     setCustNotes('');
+    setSlotAlert(null);
   };
 
   const getWaLink = () => {
@@ -291,33 +401,108 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
             </div>
 
             {/* Slot Jam */}
-            <div style={{ marginTop: '10px' }}>
-              <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '10px' }}>
-                Tanggal Terpilih: <b>{formattedDateStr}</b>
+            <div style={{ marginTop: '12px' }}>
+              <div className="slots-header-bar">
+                <div className="slots-header-date">
+                  Tanggal Terpilih: <b>{formattedDateStr}</b>
+                </div>
+                <div className="slots-legend">
+                  <span className="legend-item"><span className="legend-dot avail"></span> Tersedia</span>
+                  <span className="legend-item"><span className="legend-dot booked"></span> Terisi / Penuh</span>
+                  <span className="legend-item"><span className="legend-dot selected"></span> Dipilih</span>
+                </div>
               </div>
+
               <div className="slots-grid">
                 {TIME_SLOTS.map((s) => {
                   const isPastSlot = isSlotPast(s);
+                  const isBooked = isSlotBooked(s, capster);
+                  const isSelected = time === s && !isBooked;
+
                   return (
                     <button
                       key={s}
                       type="button"
-                      disabled={isPastSlot}
-                      className={`time-slot-btn ${time === s ? 'selected' : ''} ${isPastSlot ? 'disabled' : ''}`}
-                      onClick={() => {
-                        if (!isPastSlot) setTime(s);
-                      }}
-                      style={isPastSlot ? { opacity: 0.35, cursor: 'not-allowed', textDecoration: 'line-through' } : {}}
+                      className={`time-slot-btn ${isSelected ? 'selected' : ''} ${isPastSlot ? 'disabled is-past' : ''} ${isBooked ? 'disabled is-booked' : ''}`}
+                      onClick={() => handleSlotClick(s)}
+                      title={
+                        isBooked
+                          ? `Pukul ${s} WITA sudah dibooking untuk ${capster}`
+                          : isPastSlot
+                          ? 'Jam sudah lewat'
+                          : `Pilih pukul ${s} WITA`
+                      }
                     >
-                      {s}
+                      <span className="slot-time-num">{s}</span>
+                      {isBooked ? (
+                        <span className="slot-status-badge badge-booked">TERISI</span>
+                      ) : isPastSlot ? (
+                        <span className="slot-status-badge badge-past">LEWAT</span>
+                      ) : isSelected ? (
+                        <span className="slot-status-badge badge-selected">DIPILIH</span>
+                      ) : (
+                        <span className="slot-status-badge badge-avail">TERSEDIA</span>
+                      )}
                     </button>
                   );
                 })}
               </div>
+
+              {/* Alert / Peringatan jika pengguna mengklik slot lain yang sudah penuh */}
+              {slotAlert && !isCurrentSlotBooked && (
+                <div className="slot-warning-toast" role="alert">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '15px' }}>⚠️</span>
+                    <span>{slotAlert}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-close-toast"
+                    onClick={() => setSlotAlert(null)}
+                    aria-label="Tutup peringatan"
+                  >
+                    &times;
+                  </button>
+                </div>
+              )}
+
+              {/* Peringatan jika jam yang sedang terpilih ternyata sudah dibooking */}
+              {isCurrentSlotBooked && (
+                <div className="booking-conflict-alert" role="alert">
+                  <div className="conflict-header">
+                    <div className="conflict-icon-box">⚠️</div>
+                    <div className="conflict-text">
+                      <strong>
+                        Slot Jam <span className="tag-jam-full">{time} WITA</span> Sudah Terisi!
+                      </strong>
+                      <p>
+                        Capster <span className="conflict-capster-pill">{capster}</span> telah dibooking pelanggan lain pada pukul <span className="conflict-time-pill">{time} WITA</span> ({formattedDateStr}). 
+                        Silakan pilih jam bertanda hijau yang masih kosong di atas atau ganti capster.
+                      </p>
+                    </div>
+                  </div>
+                  {TIME_SLOTS.some((s) => !isSlotPast(s) && !isSlotBooked(s, capster)) && (
+                    <button
+                      type="button"
+                      className="btn-suggest-slot"
+                      onClick={() => {
+                        const nextFree = TIME_SLOTS.find((s) => !isSlotPast(s) && !isSlotBooked(s, capster));
+                        if (nextFree) {
+                          setTime(nextFree);
+                          setSlotAlert(null);
+                          if (onShowToast) onShowToast(`Jadwal dialihkan ke jam ${nextFree} WITA yang tersedia.`);
+                        }
+                      }}
+                    >
+                      👉 Pilih Jam Kosong Terdekat Otomatis
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Pilihan Layanan & Capster Dropdown */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginTop: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginTop: '14px' }}>
               <div className="field-group">
                 <label htmlFor="bookServiceSelect">Pilih Layanan Cukur:</label>
                 <select
@@ -343,7 +528,7 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
                   id="bookCapsterSelect"
                   className="custom-select"
                   value={capster}
-                  onChange={(e) => setCapster(e.target.value)}
+                  onChange={(e) => handleCapsterChange(e.target.value)}
                 >
                   {CAPSTERS.map((c) => (
                     <option key={c.name} value={c.name}>{c.label}</option>
@@ -426,11 +611,15 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
 
                   <button
                     type="submit"
-                    className="btn btn-accent"
+                    className={`btn btn-accent ${isCurrentSlotBooked ? 'btn-conflict-disabled' : ''}`}
                     style={{ width: '100%', fontWeight: 800, fontSize: '14px' }}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isCurrentSlotBooked}
                   >
-                    {isSubmitting ? 'Memproses Booking...' : 'Kunci Kursi & Konfirmasi Booking'}
+                    {isSubmitting
+                      ? 'Memproses Booking...'
+                      : isCurrentSlotBooked
+                      ? `⚠️ Slot ${time} Terisi (Pilih Jam Lain)`
+                      : 'Kunci Kursi & Konfirmasi Booking'}
                   </button>
                 </form>
               ) : (
@@ -461,7 +650,7 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: 'var(--muted)' }}>Tarif:</span>
-                      <b style={{ color: 'var(--accent)' }}>{confirmedTicket.price}</b>
+                      <b style={{ color: '#ffffff' }}>{confirmedTicket.price}</b>
                     </div>
                   </div>
 

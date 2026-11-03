@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseUrl = (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_URL : '') || '';
+const supabaseAnonKey = (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_ANON_KEY : '') || '';
 
 export const isSupabaseConfigured = Boolean(
   supabaseUrl &&
@@ -179,6 +179,30 @@ export function enrichBookingPayment(b) {
   };
 }
 
+export function normalizeCapsterName(name) {
+  if (!name) return '';
+  const lower = String(name).toLowerCase().trim();
+  if (lower.includes('ikmal')) return 'ikmal';
+  if (lower.includes('rezky')) return 'rezky';
+  if (lower.includes('abi')) return 'abi';
+  return lower;
+}
+
+export async function getActiveBookingsForDate(dateStr) {
+  try {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('id, booking_code, customer_name, capster_name, booking_date, booking_time, status')
+      .eq('booking_date', dateStr)
+      .neq('status', 'cancelled');
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error('[Supabase] Gagal mengambil bookings tanggal:', err.message);
+    return [];
+  }
+}
+
 export async function getSupabaseBookings() {
   try {
     const { data, error } = await supabase
@@ -196,6 +220,34 @@ export async function getSupabaseBookings() {
 
 export async function createSupabaseBooking(payload) {
   try {
+    // 1. Validasi tabrakan jadwal (double-booking prevention):
+    // Cek apakah slot jam untuk capster tersebut pada tanggal tersebut sudah terisi aktif (bukan cancelled)
+    if (payload.booking_date && payload.booking_time && payload.capster_name) {
+      const targetTime = String(payload.booking_time).slice(0, 5);
+      const targetCapster = normalizeCapsterName(payload.capster_name);
+
+      const { data: existingBookings, error: checkErr } = await supabase
+        .from('bookings')
+        .select('id, booking_code, capster_name, booking_time, status')
+        .eq('booking_date', payload.booking_date)
+        .neq('status', 'cancelled');
+
+      if (!checkErr && existingBookings && existingBookings.length > 0) {
+        const isConflict = existingBookings.some((b) => {
+          const bTime = String(b.booking_time || '').slice(0, 5);
+          const bCapster = normalizeCapsterName(b.capster_name);
+          return bTime === targetTime && bCapster === targetCapster;
+        });
+
+        if (isConflict) {
+          return {
+            success: false,
+            error: `Slot pukul ${targetTime} WITA untuk capster ${payload.capster_name} sudah dibooking oleh pelanggan lain. Silakan pilih jam atau capster lain.`
+          };
+        }
+      }
+    }
+
     const today = new Date();
     const dayStr = String(today.getDate()).padStart(2, '0');
     const monthStr = String(today.getMonth() + 1).padStart(2, '0');
@@ -319,6 +371,42 @@ export async function updateSupabaseBooking(bookingId, patchData) {
 
 export async function updateSupabaseBookingStatus(bookingId, status) {
   return updateSupabaseBooking(bookingId, { status });
+}
+
+export async function deleteSupabaseBooking(bookingId, bookingCode) {
+  try {
+    let query = supabase.from('bookings').delete();
+    if (bookingId) {
+      query = query.eq('id', bookingId);
+    } else if (bookingCode) {
+      query = query.eq('booking_code', bookingCode);
+    } else {
+      throw new Error('ID atau Kode Booking diperlukan');
+    }
+    const { error } = await query;
+    if (error) throw error;
+    return { success: true };
+  } catch (err) {
+    console.error('[Supabase] Gagal menghapus booking:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function clearAllSupabaseBookings(ids) {
+  try {
+    let query = supabase.from('bookings').delete();
+    if (Array.isArray(ids) && ids.length > 0) {
+      query = query.in('id', ids);
+    } else {
+      query = query.gt('id', 0);
+    }
+    const { error } = await query;
+    if (error) throw error;
+    return { success: true };
+  } catch (err) {
+    console.error('[Supabase] Gagal mereset semua booking:', err.message);
+    return { success: false, error: err.message };
+  }
 }
 
 // ==============================================================================

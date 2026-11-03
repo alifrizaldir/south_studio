@@ -49,7 +49,7 @@ export default function Navbar({ onNavigate }) {
         <a 
           href="#login" 
           className="drawer-link" 
-          style={{ color: 'var(--accent)', borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: '8px' }}
+          style={{ color: '#ffffff', borderTop: '1px solid rgba(255,255,255,0.12)', marginTop: '8px' }}
           onClick={(e) => {
             e.preventDefault();
             closeMobile();
