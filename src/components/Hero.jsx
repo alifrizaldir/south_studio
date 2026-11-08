@@ -1,35 +1,39 @@
 import React from 'react';
+import { useInView } from '../hooks/useInView';
 
 export default function Hero() {
+  const [heroRef, heroInView] = useInView({ threshold: 0.05 });
+  const [aboutRef, aboutInView] = useInView({ threshold: 0.15 });
+
   return (
     <>
       {/* HERO SECTION */}
-      <section className="hero-section" style={{ padding: 0 }}>
+      <section ref={heroRef} className={`hero-section hero-anim-section ${heroInView ? 'in-view' : ''}`} style={{ padding: 0 }}>
         <div className="hero-grid">
           {/* Left Column: Editorial Headline & Story */}
-          <div className="hero-content reveal in">
-            <div className="hero-kicker">BARBERSHOP - PALOPO</div>
+          <div className="hero-content">
+            <div className="hero-kicker hero-fade-down">BARBERSHOP - PALOPO</div>
 
-            <div className="hero-script-wrap">
+            <div className="hero-script-wrap hero-fade-down-script">
               <span className="hero-script-text">South Hair Studio</span>
             </div>
 
-            <h1 className="hero-title">
+            <h1 className="hero-title hero-fade-up-title">
               Fresh Cuts Only<br />
               On The South Side.
             </h1>
 
-            <p className="hero-desc">
+            <p className="hero-desc hero-fade-up-desc">
               South Hair Studio dibangun untuk pria modern yang menuntut lebih dari sekadar potongan rambut, dengan estetika yang matang dan pengalaman booking yang mulus. Karena waktu dan penampilan Anda sama-sama penting.
             </p>
 
             {/* CTA Action Buttons */}
-            <div className="hero-cta-group">
+            <div className="hero-cta-group hero-fade-up-cta">
               <a href="#booking" className="btn">Jadwalkan Kursi Sekarang</a>
               <a href="#layanan" className="btn btn-outline">Lihat Tarif Layanan</a>
             </div>
 
-            <div className="hero-meta-footer">
+            <div className="hero-meta-footer hero-fade-up-meta">
               <div className="hero-meta-col">
                 <div className="hero-meta-label">Alamat Studio</div>
                 <div className="hero-meta-val">No. 139, Jl. Andi Kambo, Kota Palopo</div>
@@ -50,7 +54,7 @@ export default function Hero() {
           </div>
 
           {/* Right Column: Precision Barber Photography */}
-          <div className="hero-image-pane">
+          <div className="hero-image-pane hero-image-anim">
             <img src="assets/hero_barber_clipper.jpg" alt="Barber memotong rambut presisi di South Hair Studio Palopo" loading="eager" />
             <div className="hero-image-overlay">
               <div className="hero-tagline">Master Barber &bull; Classic &amp; Modern Fade</div>
@@ -60,32 +64,36 @@ export default function Hero() {
       </section>
 
       {/* TENTANG KAMI */}
-      <section id="tentang">
+      <section id="tentang" ref={aboutRef} className={`about-anim-section ${aboutInView ? 'in-view' : ''}`}>
         <div className="wrap">
-          <div className="about-layout reveal in">
-            {/* Left: Overlapping Tilted Polaroid Art Cards */}
-            <div className="about-collage-container">
+          <div className="about-layout">
+            {/* Left: Overlapping Tilted Polaroid Art Cards (Transisi Sinematik Mandiri Kiri & Kanan) */}
+            <div className="about-collage-container about-collage-anim">
               <div className="about-collage-wrap">
-                <div className="about-polaroid card-behind">
-                  <img src="assets/tentang_chair.jpg" alt="Kursi barber klasik South Hair Studio" loading="lazy" />
+                <div className="about-polaroid card-behind about-card-behind-anim">
+                  <div className="about-polaroid-inner">
+                    <img src="assets/tentang_chair.jpg" alt="Kursi barber klasik South Hair Studio" loading="lazy" />
+                  </div>
                 </div>
-                <div className="about-polaroid card-front">
-                  <img src="assets/tentang_barber.jpg" alt="Tradisi barbershop berkelas South Hair Studio" loading="lazy" />
+                <div className="about-polaroid card-front about-card-front-anim">
+                  <div className="about-polaroid-inner">
+                    <img src="assets/tentang_barber.jpg" alt="Tradisi barbershop berkelas South Hair Studio" loading="lazy" />
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Right: Content Text Pane */}
-            <div className="about-text-pane">
-              <div className="section-kicker">CERITA &amp; DEDIKASI</div>
-              <h2 className="about-title">Tentang Kami</h2>
-              <p style={{ textAlign: 'justify', textJustify: 'inter-word' }}>
+            {/* Right: Content Text Pane (Meluncur Berjenjang dari BAWAH ke ATAS) */}
+            <div className="about-text-pane about-text-anim">
+              <div className="section-kicker about-kicker-anim">CERITA &amp; DEDIKASI</div>
+              <h2 className="about-title about-title-anim">Tentang Kami</h2>
+              <p className="about-desc-anim about-desc-1" style={{ textAlign: 'justify', textJustify: 'inter-word' }}>
                 South Hair Studio berdiri pada 25 Mei 2025, dirintis oleh Kak Ikmal yang sebelumnya bekerja sebagai karyawan di barbershop lain. Kami fokus pada potongan presisi dan perawatan rambut pria, dikerjakan oleh capster yang menguasai gaya klasik maupun modern.
               </p>
-              <p style={{ textAlign: 'justify', textJustify: 'inter-word' }}>
+              <p className="about-desc-anim about-desc-2" style={{ textAlign: 'justify', textJustify: 'inter-word' }}>
                 Dari gaya kerja harian hingga detail akhir, kami berkomitmen memastikan setiap pelanggan pulang dengan penampilan dan rasa percaya diri yang lebih baik.
               </p>
-              <div className="about-features-row">
+              <div className="about-features-row about-features-anim">
                 <div className="about-feat-item">
                   <span className="about-feat-num">2025</span>
                   <span className="about-feat-label">Est. Kota Palopo</span>

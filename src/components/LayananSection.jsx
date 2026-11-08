@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getSupabaseServices } from '../lib/supabase';
+import { useInView } from '../hooks/useInView';
 
 const DEFAULT_SERVICES = [
   { id: 1, name: 'Hair Cut', priceStr: 'Rp 40.000', price: 40000, img: 'assets/layanan_south/hair_cut.png' },
@@ -11,6 +12,7 @@ const DEFAULT_SERVICES = [
 
 export default function LayananSection({ onSelectService }) {
   const [services, setServices] = useState(DEFAULT_SERVICES);
+  const [sectionRef, inView] = useInView({ threshold: 0.12 });
 
   useEffect(() => {
     async function loadData() {
@@ -41,20 +43,21 @@ export default function LayananSection({ onSelectService }) {
   };
 
   return (
-    <section id="layanan">
+    <section id="layanan" ref={sectionRef} className={`layanan-anim-section ${inView ? 'in-view' : ''}`}>
       <div className="wrap">
-        <div className="section-header center reveal in">
+        <div className="section-header center layanan-header-anim">
           <div className="section-kicker">KATALOG &amp; TARIF</div>
           <h2 className="section-title">Katalog Layanan</h2>
           <p className="section-sub">Pilih layanan dan tarif, lalu booking langsung.</p>
         </div>
 
         <div className="catalog-container">
-          <div className="catalog-list reveal in">
-            {services.map((svc) => (
+          <div className="catalog-list">
+            {services.map((svc, idx) => (
               <div
                 key={svc.id || svc.name}
-                className="catalog-item"
+                className="catalog-item catalog-item-anim"
+                style={{ '--item-index': idx }}
                 onClick={() => handleChoose(svc)}
                 role="button"
                 tabIndex="0"
@@ -77,8 +80,12 @@ export default function LayananSection({ onSelectService }) {
                       e.stopPropagation();
                       handleChoose(svc);
                     }}
+                    type="button"
                   >
-                    BOOK
+                    <span>Pilih</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
                   </button>
                 </div>
               </div>

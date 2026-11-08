@@ -225,7 +225,13 @@ export default function AdminDashboard({ onLogout, onBackToHome, onShowToast }) 
     loadBookings();
     loadStudioResources();
 
-    // Supabase Realtime Listener untuk Booking baru
+    /**
+     * [ALUR 1: WEBSOCKET REALTIME LISTENER DI DASHBOARD KASIR]
+     * Komponen ini membuka channel WebSocket 'realtime:bookings' ke Supabase.
+     * Saat ada event 'INSERT' (pelanggan baru booking di website utama),
+     * Supabase langsung mendorong (push) data baru tersebut ke layar kasir ini
+     * sehingga antrean langsung bertambah seketika tanpa kasir menekan tombol refresh!
+     */
     let channel = null;
     if (isSupabaseConfigured) {
       try {
@@ -252,16 +258,31 @@ export default function AdminDashboard({ onLogout, onBackToHome, onShowToast }) 
       }
     }
 
+    // Listener sinkronisasi antrean lokal seketika (Dual-layer event sync untuk demo offline)
+    const handleLocalBookingSync = () => {
+      loadBookings();
+    };
+    window.addEventListener('shs:booking_created', handleLocalBookingSync);
+    window.addEventListener('storage', handleLocalBookingSync);
+
     return () => {
       if (channel) {
         supabase.removeChannel(channel);
       }
+      window.removeEventListener('shs:booking_created', handleLocalBookingSync);
+      window.removeEventListener('storage', handleLocalBookingSync);
     };
   }, []);
 
+  /**
+   * [ALUR 2: GET DATA MASTER STUDIO (SERVICES, CAPSTERS, PRODUCTS)]
+   * Mengambil data master dari 3 tabel database sekaligus secara paralel (Promise.all):
+   * 1. services -> daftar paket cukur dan tarif
+   * 2. capsters -> tim barber dan status kehadiran
+   * 3. products -> stok produk grooming yang dijual di kasir
+   */
   const loadStudioResources = async () => {
     try {
-      // Ambil langsung dari database Supabase
       const [sbSvc, sbCap, sbProd] = await Promise.all([
         getSupabaseServices(),
         getSupabaseCapsters(),
@@ -283,33 +304,43 @@ export default function AdminDashboard({ onLogout, onBackToHome, onShowToast }) 
         setProducts(sbProd);
       }
     } catch (err) {
-      console.error('Gagal memuat resource studio dari Supabase:', err);
+      console.error('[Admin GET] Gagal memuat resource studio dari Supabase:', err);
     }
   };
 
+  /**
+   * [ALUR 3: GET SELURUH TRANSAKSI ANTREAN BOOKING]
+   * Mengambil riwayat booking dari tabel 'bookings' untuk dihitung omzet dan komisinya.
+   */
   const loadBookings = async () => {
     setIsLoading(true);
     try {
-      // Ambil seluruh data booking dari Supabase
       const sbBookings = await getSupabaseBookings();
       if (sbBookings) {
         setBookings(sbBookings);
       }
     } catch (err) {
-      console.error('Gagal memuat booking dari Supabase:', err);
+      console.error('[Admin GET] Gagal memuat booking dari Supabase:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
+  /**
+   * [ALUR 4: UPDATE / PATCH STATUS & METODE BAYAR DENGAN OPTIMISTIC UI]
+   * Teknik Optimistic UI:
+   * 1. State lokal langsung diperbarui terlebih dahulu agar tombol kasir terasa instan/cepat.
+   * 2. Di latar belakang, request UPDATE dikirim ke PostgreSQL Supabase.
+   * 3. Jika Supabase selesai memproses, data lokal disinkronkan kembali.
+   */
   const updateBookingStatus = async (bookingId, patchData) => {
-    // 1. Optimistic UI update
+    // 1. Optimistic UI update di layar kasir
     setBookings((prev) =>
       prev.map((b) => (b.id === bookingId ? { ...b, ...patchData } : b))
     );
 
     try {
-      // 2. Langsung update ke database Supabase & sync data
+      // 2. Request UPDATE ke Supabase
       const res = await updateSupabaseBooking(bookingId, patchData);
       if (res && res.success && res.booking) {
         setBookings((prev) =>
@@ -317,12 +348,17 @@ export default function AdminDashboard({ onLogout, onBackToHome, onShowToast }) 
         );
       }
     } catch (e) {
-      console.error('Gagal update booking di Supabase:', e);
+      console.error('[Admin UPDATE] Gagal update booking di Supabase:', e);
     }
 
     if (onShowToast) onShowToast('Status booking & metode bayar tersimpan permanen!');
   };
 
+  /**
+   * [AKSI KASIR: PELUNASAN BAYAR TUNAI ATAU QRIS]
+   * Dipanggil saat kasir mengklik tombol "TUNAI" (hijau) atau "QRIS" (biru).
+   * Status transaksi langsung menjadi 'completed' (lunas & selesai).
+   */
   const handlePay = (booking, method) => {
     updateBookingStatus(booking.id, {
       payment_method: method,
@@ -331,6 +367,10 @@ export default function AdminDashboard({ onLogout, onBackToHome, onShowToast }) 
     });
   };
 
+  /**
+   * [AKSI KASIR: SELESAI CUKUR]
+   * Menandai bahwa pelanggan telah selesai dicukur di kursi barber.
+   */
   const handleComplete = (booking) => {
     updateBookingStatus(booking.id, {
       status: 'completed',
@@ -339,6 +379,10 @@ export default function AdminDashboard({ onLogout, onBackToHome, onShowToast }) 
     });
   };
 
+  /**
+   * [AKSI KASIR: PEMBATALAN ANTREAN]
+   * Mengubah status menjadi 'cancelled', sehingga slot jam di website utama otomatis terbuka kembali.
+   */
   const handleCancel = (booking) => {
     if (confirm(`Yakin ingin membatalkan antrean ${booking.booking_code}?`)) {
       updateBookingStatus(booking.id, {
@@ -348,16 +392,20 @@ export default function AdminDashboard({ onLogout, onBackToHome, onShowToast }) 
     }
   };
 
+  /**
+   * [ALUR 5: DELETE DATA BOOKING DARI DATABASE]
+   * Menghapus baris transaksi antrean dari tabel 'bookings' di Supabase.
+   */
   const handleDeleteBooking = async (booking) => {
     const code = booking.booking_code || `#${booking.id}`;
     const name = booking.customer_name || 'Pelanggan';
     if (!confirm(`Hapus permanen antrean ${code} (${name}) dari database?`)) return;
 
-    // 1. Optimistic UI update seketika di layar
+    // 1. Optimistic UI: hapus langsung dari tabel di layar
     setBookings((prev) => prev.filter((b) => b.id !== booking.id));
 
     try {
-      // 2. Langsung hapus dari tabel bookings di Supabase
+      // 2. Request DELETE ke Supabase
       const res = await deleteSupabaseBooking(booking.id, booking.booking_code);
       if (res && res.success) {
         if (onShowToast) onShowToast(`Antrean ${code} berhasil dihapus permanen dari database!`);
@@ -366,7 +414,7 @@ export default function AdminDashboard({ onLogout, onBackToHome, onShowToast }) 
         if (onShowToast) onShowToast(`Peringatan: ${res?.error || 'Gagal menghapus di server'}`);
       }
     } catch (err) {
-      console.error('Error saat hapus booking:', err);
+      console.error('[Admin DELETE] Error saat hapus booking:', err);
     }
   };
 
@@ -590,7 +638,13 @@ export default function AdminDashboard({ onLogout, onBackToHome, onShowToast }) 
     return isNaN(p) ? 0 : p;
   };
 
-  // Calculations
+  /**
+   * [ALUR 6: LOGIKA KALKULASI REKAP KASIR & OMZET STUDIO]
+   * Dihitung secara reaktif dari state 'bookings' yang didapat dari database:
+   * - cashTotal: Jumlah uang tunai riil di laci kasir (filter payment_method === 'tunai' & lunas)
+   * - qrisTotal: Jumlah uang non-tunai di mutasi bank/QRIS (filter payment_method === 'qris' & lunas)
+   * - revenueTotal: Total omzet kotor (Tunai + QRIS)
+   */
   const totalSessions = bookings.length;
   const cashTotal = bookings
     .filter((b) => b.payment_method === 'tunai' && (b.payment_status === 'paid' || b.status === 'completed'))

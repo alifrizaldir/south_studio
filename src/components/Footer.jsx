@@ -1,11 +1,14 @@
 import React from 'react';
+import { useInView } from '../hooks/useInView';
 
 export default function Footer({ onNavigate }) {
+  const [footerRef, footerInView] = useInView({ threshold: 0.1 });
+
   return (
-    <footer>
+    <footer ref={footerRef} className={`footer-anim-section ${footerInView ? 'in-view' : ''}`}>
       <div className="wrap">
         <div className="footer-grid">
-          <div>
+          <div className="footer-col-anim" style={{ '--col-idx': 0 }}>
             <div className="footer-brand">
               <img src="assets/logo_south.png" alt="Logo South Hair Studio" className="brand-logo-img" />
               <span className="footer-brand-title">South Hair Studio</span>
@@ -36,7 +39,7 @@ export default function Footer({ onNavigate }) {
             </div>
           </div>
 
-          <div className="footer-col">
+          <div className="footer-col footer-col-anim" style={{ '--col-idx': 1 }}>
             <h5>Navigasi Utama</h5>
             <a href="#layanan">Katalog Layanan</a>
             <a href="#booking">Jadwal &amp; Booking</a>
@@ -44,7 +47,7 @@ export default function Footer({ onNavigate }) {
             <a href="#galeri">Galeri Portofolio</a>
           </div>
 
-          <div className="footer-col">
+          <div className="footer-col footer-col-anim" style={{ '--col-idx': 2 }}>
             <h5>Akses &amp; Petunjuk</h5>
             <a href="#lokasi">Peta &amp; Jam Buka</a>
             <a

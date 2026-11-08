@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useInView } from '../hooks/useInView';
 import {
   createSupabaseBooking,
   getActiveBookingsForDate,
+  trackBookingByCodeOrPhone,
   normalizeCapsterName,
   supabase,
   isSupabaseConfigured
@@ -43,6 +45,8 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
     price: 50000
   });
 
+  const [bookingSectionRef, bookingInView] = useInView({ threshold: 0.1 });
+
   const [capster, setCapster] = useState('Rezky');
   const [time, setTime] = useState('10:00');
 
@@ -55,6 +59,128 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
   const [confirmedTicket, setConfirmedTicket] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Live Ticket Tracker State
+  const [activeMode, setActiveMode] = useState('book'); // 'book' | 'track'
+  const [trackQuery, setTrackQuery] = useState('');
+  const [trackResult, setTrackResult] = useState(null);
+  const [isTracking, setIsTracking] = useState(false);
+  const [trackError, setTrackError] = useState('');
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  // Listener untuk membuka tracker langsung saat link 'Cek Tiket' di Navbar diklik
+  useEffect(() => {
+    const handleOpenTracker = () => {
+      setActiveMode('track');
+      const el = document.getElementById('booking');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    };
+    window.addEventListener('shs:open_ticket_tracker', handleOpenTracker);
+    return () => window.removeEventListener('shs:open_ticket_tracker', handleOpenTracker);
+  }, []);
+
+  const DEMO_CHIPS = [
+    { code: 'SHS-0811-102', label: 'SHS-0811-102', name: 'Fikram', status: 'Selesai' },
+    { code: 'SHS-0811-422', label: 'SHS-0811-422', name: 'Budi', status: 'Menunggu' },
+    { code: 'SHS-0811-205', label: 'SHS-0811-205', name: 'Aldi', status: 'Selesai' }
+  ];
+
+  const handleTrackSubmit = async (codeToSearch = trackQuery) => {
+    const q = String(codeToSearch || '').trim();
+    if (!q) {
+      setTrackError('Silakan masukkan kode booking (contoh: SHS-0811-102) atau nomor WhatsApp Anda.');
+      return;
+    }
+
+    setIsTracking(true);
+    setTrackError('');
+
+    try {
+      const res = await trackBookingByCodeOrPhone(q);
+      if (res && res.success && res.booking) {
+        setTrackResult(res.booking);
+        if (onShowToast) onShowToast(`Status Tiket #${res.booking.booking_code}: ${res.booking.status?.toUpperCase()}`);
+      } else {
+        setTrackResult(null);
+        setTrackError(res?.message || `Tiket "${q}" tidak ditemukan. Pastikan kode atau nomor WhatsApp sudah benar.`);
+      }
+    } catch (err) {
+      setTrackError('Gagal memuat status tiket: ' + err.message);
+    } finally {
+      setIsTracking(false);
+    }
+  };
+
+  const handleCopyCode = (code) => {
+    try {
+      navigator.clipboard.writeText(code);
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2000);
+      if (onShowToast) onShowToast(`Kode #${code} berhasil disalin ke clipboard!`);
+    } catch (e) {}
+  };
+
+  const formatDateIndo = (dateStr) => {
+    if (!dateStr) return '-';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
+  const getStatusInfo = (status) => {
+    switch (status) {
+      case 'completed':
+        return {
+          title: 'SESI CUKUR SELESAI',
+          desc: 'Potongan rambut telah selesai dikerjakan. Terima kasih telah mempercayakan penampilan Anda di South Hair Studio!',
+          badgeClass: 'status-completed',
+          icon: '✓'
+        };
+      case 'confirmed':
+      case 'in_service':
+        return {
+          title: 'SEDANG DILAYANI DI KURSI',
+          desc: 'Pelanggan saat ini sedang ditangani di kursi pangkas oleh Capster. Nikmati sesi cukur Anda!',
+          badgeClass: 'status-inservice',
+          icon: '✂'
+        };
+      case 'cancelled':
+        return {
+          title: 'BOOKING DIBATALKAN',
+          desc: 'Reservasi ini telah dibatalkan. Silakan lakukan reservasi baru jika ingin menjadwalkan ulang.',
+          badgeClass: 'status-cancelled',
+          icon: '✕'
+        };
+      case 'pending':
+      default:
+        return {
+          title: 'MENUNGGU GILIRAN JADWAL',
+          desc: 'Jadwal kursi Anda telah terkunci di komputer kasir studio. Mohon tiba 10 menit lebih awal sebelum jam sesi.',
+          badgeClass: 'status-pending',
+          icon: '⏱'
+        };
+    }
+  };
+
+  const getWaTrackLink = (b) => {
+    if (!b) return '#';
+    const text = encodeURIComponent(
+      `Halo South Hair Studio, saya ingin menanyakan status booking tiket saya:\n` +
+      `Kode: #${b.booking_code}\n` +
+      `Nama: ${b.customer_name}\n` +
+      `Jadwal: ${formatDateIndo(b.booking_date)}, ${b.booking_time} WITA\n` +
+      `Capster: ${b.capster_name}\n\nTerima kasih!`
+    );
+    return `https://wa.me/6282340069911?text=${text}`;
+  };
+
   // Active bookings list from Supabase for slot collision detection
   const [activeBookings, setActiveBookings] = useState([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
@@ -63,14 +189,18 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
   const formattedDateStr = `${selectedDay} ${MONTH_NAMES[currentMonth]} ${currentYear}`;
   const isoDateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
 
-  // Fetch active bookings for the selected date from Supabase
+  /**
+   * [ALUR 1: GET DATA DINAMIS DARI DATABASE]
+   * Fungsi ini dipanggil otomatis setiap kali pengunjung mengganti tanggal pada kalender.
+   * Melakukan request SELECT ke tabel 'bookings' untuk mengambil semua slot yang sudah dibooking.
+   */
   const loadBookingsForDate = async (dateStr) => {
     setIsLoadingSlots(true);
     try {
       const data = await getActiveBookingsForDate(dateStr);
       setActiveBookings(data || []);
     } catch (err) {
-      console.error('Gagal mengambil slot booking Supabase:', err);
+      console.error('[BookingSection GET] Gagal mengambil slot booking Supabase:', err);
     } finally {
       setIsLoadingSlots(false);
     }
@@ -80,7 +210,14 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
     loadBookingsForDate(isoDateStr);
   }, [isoDateStr]);
 
-  // Realtime listener: jika ada pemesanan baru atau pembatalan, perbarui slot langsung secara realtime
+  /**
+   * [ALUR 2: WEBSOCKET REALTIME SYNCHRONIZATION (SUPABASE REALTIME)]
+   * Inilah yang dibuktikan saat seminar di depan Dosen Penguji:
+   * Menggunakan teknologi WebSocket 'postgres_changes' pada tabel 'bookings'.
+   * Jika ada pelanggan lain atau kasir yang memesan/membatalkan slot,
+   * server PostgreSQL akan mem-broadcast event ke browser ini,
+   * dan fungsi loadBookingsForDate() akan otomatis terpanggil seketika tanpa perlu reload halaman!
+   */
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     const channel = supabase
@@ -99,7 +236,11 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
     };
   }, [isoDateStr]);
 
-  // Cek apakah slot jam tertentu untuk capster yang dipilih sudah terisi
+  /**
+   * [ALUR 3: LOGIKA PENGECEKAN KETERISIAN SLOT JAM]
+   * Memeriksa apakah jam tertentu (misal '16:00') pada capster yang dipilih sudah terisi.
+   * Mengembalikan boolean (true = Terisi/Merah, false = Tersedia/Hijau).
+   */
   const isSlotBooked = (slotStr, targetCapster = capster) => {
     if (!activeBookings || activeBookings.length === 0) return false;
     const targetTime = slotStr.slice(0, 5);
@@ -231,6 +372,16 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
     }
   }, [selectedDay, currentMonth, currentYear]);
 
+  /**
+   * [ALUR 4: POST / SUBMIT PEMESANAN BOOKING BARU]
+   * Dipanggil saat pelanggan mengklik tombol "Kunci Kursi & Konfirmasi Booking".
+   * Alur:
+   * 1. Validasi Formulir: Memastikan nama & nomor WhatsApp tidak kosong.
+   * 2. Validasi Clash Client: Mengecek apakah slot jam masih kosong di state lokal.
+   * 3. Request POST ke Server: Mengirim bookingPayload ke createSupabaseBooking().
+   * 4. Validasi Clash Server: Supabase kembali memeriksa di database untuk mencegah double-booking.
+   * 5. Response & Tiket: Jika sukses, sistem menampilkan 'confirmedTicket' berisi kode booking unik.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!custName.trim() || !custPhone.trim()) {
@@ -259,16 +410,22 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
     };
 
     try {
-      // Simpan langsung ke Supabase dengan pengecekan ganda di server
+      // Eksekusi POST data ke PostgreSQL Supabase (dengan Fail-Safe Offline Fallback)
       const result = await createSupabaseBooking(bookingPayload);
 
       if (result && result.success === false) {
-        alert(result.error || 'Maaf, slot jam ini sudah terisi untuk capster tersebut. Silakan pilih jam lain.');
+        if (result.isConflict) {
+          alert(result.error);
+          setSlotAlert(`⚠️ ${result.error}`);
+        } else {
+          alert(result.error || 'Maaf, slot jam ini sudah terisi untuk capster tersebut. Silakan pilih jam lain.');
+        }
         await loadBookingsForDate(isoDateStr);
         setIsSubmitting(false);
         return;
       }
 
+      // Membentuk objek tiket konfirmasi untuk ditampilkan ke pelanggan
       const bookingCode = result?.booking?.booking_code || `SHS-${selectedDay}${currentMonth + 1}-${Math.floor(100 + Math.random() * 900)}`;
       const ticket = {
         code: bookingCode,
@@ -283,7 +440,7 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
       await loadBookingsForDate(isoDateStr);
       if (onShowToast) onShowToast(`Kursi Anda berhasil terkunci! Kode: ${ticket.code}`);
     } catch (err) {
-      // Local fallback in case offline
+      // Fail-safe fallback jika terjadi pengecualian tak terduga
       const ticket = {
         code: `SHS-${selectedDay}${currentMonth + 1}-${Math.floor(100 + Math.random() * 900)}`,
         name: custName.trim(),
@@ -323,9 +480,9 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
   };
 
   return (
-    <section id="booking" className="book-section">
+    <section id="booking" ref={bookingSectionRef} className={`book-section booking-anim-section ${bookingInView ? 'in-view' : ''}`}>
       <div className="wrap">
-        <div className="section-header center reveal in">
+        <div className={`section-header center booking-header-anim ${bookingInView ? 'in-view' : ''}`}>
           <div className="section-kicker">Sistem Booking Kursi Mandiri</div>
           <h2 className="section-title">Pesan Jadwal &amp; Kunci Kursi Anda</h2>
           <p className="section-sub">
@@ -333,9 +490,38 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
           </p>
         </div>
 
-        <div className="book-layout reveal in">
-          {/* Kolom Kiri: Pilihan Jadwal & Capster */}
-          <div className="panel-box">
+        {/* TAB TOGGLE: Reservasi Kursi Baru vs Cek Status Tiket & Antrean */}
+        <div className="booking-mode-tabs-wrap">
+          <div className="booking-mode-tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeMode === 'book'}
+              className={`booking-tab-btn ${activeMode === 'book' ? 'active' : ''}`}
+              onClick={() => setActiveMode('book')}
+            >
+              <span className="tab-icon">✂</span>
+              <span className="tab-text">Reservasi Kursi Baru</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeMode === 'track'}
+              className={`booking-tab-btn ${activeMode === 'track' ? 'active' : ''}`}
+              onClick={() => setActiveMode('track')}
+            >
+              <span className="tab-icon">🔍</span>
+              <span className="tab-text">Cek Status Tiket &amp; Antrean</span>
+              <span className="live-pill-tag">Live</span>
+            </button>
+          </div>
+        </div>
+
+        {/* TAMPILAN MODE 1: FORM RESERVASI KURSI BARU */}
+        {activeMode === 'book' && (
+        <div className="book-layout">
+          {/* Kolom Kiri: Pilihan Jadwal & Capster (Meluncur dari arah KIRI) */}
+          <div className="panel-box booking-panel-left-anim">
             <h4>
               1. Pilih Tanggal &amp; Jam Sesi
               <span className="step">Langkah 1 &amp; 2</span>
@@ -538,8 +724,8 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
             </div>
           </div>
 
-          {/* Kolom Kanan: Formulir Pemesan & Ringkasan / Tiket Sukses */}
-          <div className="panel-box summary-card">
+          {/* Kolom Kanan: Formulir Pemesan & Ringkasan / Tiket Sukses (Meluncur dari arah KANAN) */}
+          <div className="panel-box summary-card booking-panel-right-anim">
             <div>
               <h4>
                 2. Data Pemesan &amp; Konfirmasi
@@ -670,6 +856,18 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
                     </a>
                     <button
                       type="button"
+                      className="btn btn-outline"
+                      style={{ width: '100%', borderColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                      onClick={() => {
+                        setActiveMode('track');
+                        setTrackQuery(confirmedTicket.code);
+                        handleTrackSubmit(confirmedTicket.code);
+                      }}
+                    >
+                      <span>🔍</span> Lacak Status Antrean Tiket Ini
+                    </button>
+                    <button
+                      type="button"
                       className="btn btn-outline btn-sm"
                       onClick={resetBookingForm}
                       style={{ width: '100%' }}
@@ -682,6 +880,294 @@ export default function BookingSection({ selectedService, selectedCapster, onSho
             </div>
           </div>
         </div>
+        )}
+
+        {/* TAMPILAN MODE 2: CEK TIKET & STATUS ANTREAN REALTIME */}
+        {activeMode === 'track' && (
+          <div className="booking-tracker-container">
+            {/* Box Form Pencarian Tiket */}
+            <div className="tracker-search-card">
+              <div className="tracker-search-header">
+                <div className="tracker-badge-pill">
+                  <span className="live-dot-pulse"></span>
+                  Lacak Tiket &amp; Antrean Realtime
+                </div>
+                <h3 className="tracker-search-title">Cek Status Booking Anda</h3>
+                <p className="tracker-search-sub">
+                  Masukkan <strong>Kode Booking</strong> (contoh: <code>SHS-0811-102</code>) atau <strong>Nomor WhatsApp</strong> yang Anda daftarkan untuk memantau giliran pangkas secara realtime.
+                </p>
+              </div>
+
+              <form
+                className="tracker-search-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleTrackSubmit(trackQuery);
+                }}
+              >
+                <div className="tracker-input-group">
+                  <span className="tracker-input-icon">🔍</span>
+                  <input
+                    type="text"
+                    className="tracker-input-field"
+                    placeholder="Masukkan Kode Booking (misal: SHS-0811-102) atau No. WA..."
+                    value={trackQuery}
+                    onChange={(e) => setTrackQuery(e.target.value)}
+                    autoFocus
+                  />
+                  {trackQuery && (
+                    <button
+                      type="button"
+                      className="tracker-clear-btn"
+                      onClick={() => {
+                        setTrackQuery('');
+                        setTrackResult(null);
+                        setTrackError('');
+                      }}
+                      title="Hapus input"
+                    >
+                      &times;
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="btn btn-accent tracker-submit-btn"
+                    disabled={isTracking}
+                  >
+                    {isTracking ? 'Mencari...' : 'Cari Tiket'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Demo Quick-Chips untuk Presentasi Sidang UTS */}
+              <div className="tracker-chips-wrapper">
+                <span className="tracker-chips-label">Data Demo Cepat (1-Klik untuk Sidang):</span>
+                <div className="tracker-chips-list">
+                  {DEMO_CHIPS.map((chip) => (
+                    <button
+                      key={chip.code}
+                      type="button"
+                      className={`tracker-chip-btn ${trackQuery.toUpperCase().includes(chip.code) ? 'active' : ''}`}
+                      onClick={() => {
+                        setTrackQuery(chip.code);
+                        handleTrackSubmit(chip.code);
+                      }}
+                    >
+                      <span className="chip-code">{chip.label}</span>
+                      <span className="chip-name">({chip.name})</span>
+                      <span className={`chip-badge chip-${chip.status.toLowerCase()}`}>{chip.status}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Alert Error jika tiket tidak ditemukan */}
+              {trackError && (
+                <div className="tracker-alert-box tracker-alert-error">
+                  <span className="alert-icon">⚠️</span>
+                  <div className="alert-text">
+                    <strong>Tiket Tidak Ditemukan</strong>
+                    <p>{trackError}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* HASIL TIKET: DIGITAL BARBER PASS */}
+            {trackResult && (
+              <div className="tracker-result-card">
+                {/* Header Boarding Pass */}
+                <div className="tracker-pass-top">
+                  <div className="pass-brand-meta">
+                    <span className="pass-studio-name">SOUTH HAIR STUDIO</span>
+                    <span className="pass-doc-type">OFFICIAL DIGITAL BARBER PASS</span>
+                  </div>
+                  <div className="pass-code-wrap">
+                    <span className="pass-code-label">KODE BOOKING</span>
+                    <div className="pass-code-val">
+                      <strong>#{trackResult.booking_code}</strong>
+                      <button
+                        type="button"
+                        className="btn-copy-code"
+                        onClick={() => handleCopyCode(trackResult.booking_code)}
+                        title="Salin Kode Tiket"
+                      >
+                        {copiedCode ? '✓ Tersalin' : '📋 Salin'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hero Status Bar */}
+                {(() => {
+                  const sInfo = getStatusInfo(trackResult.status);
+                  return (
+                    <div className={`ticket-live-status-hero ${sInfo.badgeClass}`}>
+                      <div className="status-hero-left">
+                        <div className="status-hero-icon-ring">
+                          <span className="status-icon-symbol">{sInfo.icon}</span>
+                        </div>
+                        <div className="status-hero-texts">
+                          <div className="status-hero-kicker">
+                            <span className="pulse-indicator-dot"></span>
+                            STATUS ANTREAN REALTIME
+                          </div>
+                          <h4 className="status-hero-title">{sInfo.title}</h4>
+                          <p className="status-hero-desc">{sInfo.desc}</p>
+                        </div>
+                      </div>
+                      <div className="status-hero-right">
+                        <button
+                          type="button"
+                          className="btn-refresh-status"
+                          onClick={() => handleTrackSubmit(trackResult.booking_code)}
+                          disabled={isTracking}
+                          title="Segarkan status langsung dari database"
+                        >
+                          <span className={`refresh-icon ${isTracking ? 'spinning' : ''}`}>🔄</span>
+                          {isTracking ? 'Memperbarui...' : 'Segarkan Status'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Stepper Progres Antrean (4 Tahap) */}
+                <div className="tracker-stepper-box">
+                  <div className="stepper-title">Progres Alur Kursi Pangkas</div>
+                  <div className="tracker-stepper">
+                    {/* Tahap 1: Booking Tercatat */}
+                    <div className="stepper-step completed">
+                      <div className="step-circle">1</div>
+                      <div className="step-info">
+                        <span className="step-label">Booking Masuk</span>
+                        <span className="step-sub">Sistem Menerima</span>
+                      </div>
+                    </div>
+
+                    <div className={`stepper-line ${trackResult.status !== 'cancelled' ? 'completed' : ''}`}></div>
+
+                    {/* Tahap 2: Kursi Terkunci */}
+                    <div className={`stepper-step ${trackResult.status !== 'cancelled' ? 'completed' : ''}`}>
+                      <div className="step-circle">2</div>
+                      <div className="step-info">
+                        <span className="step-label">Kursi Terkunci</span>
+                        <span className="step-sub">Slot Kasir Valid</span>
+                      </div>
+                    </div>
+
+                    <div className={`stepper-line ${['confirmed', 'in_service', 'completed'].includes(trackResult.status) ? 'completed' : ''}`}></div>
+
+                    {/* Tahap 3: Di Kursi Cukur */}
+                    <div className={`stepper-step ${['confirmed', 'in_service', 'completed'].includes(trackResult.status) ? (trackResult.status === 'completed' ? 'completed' : 'active') : ''}`}>
+                      <div className="step-circle">3</div>
+                      <div className="step-info">
+                        <span className="step-label">Di Kursi Cukur</span>
+                        <span className="step-sub">{['confirmed', 'in_service'].includes(trackResult.status) ? 'Sedang Dipangkas' : 'Giliran Sesi'}</span>
+                      </div>
+                    </div>
+
+                    <div className={`stepper-line ${trackResult.status === 'completed' ? 'completed' : ''}`}></div>
+
+                    {/* Tahap 4: Selesai */}
+                    <div className={`stepper-step ${trackResult.status === 'completed' ? 'completed' : ''}`}>
+                      <div className="step-circle">4</div>
+                      <div className="step-info">
+                        <span className="step-label">Selesai</span>
+                        <span className="step-sub">{trackResult.status === 'completed' ? 'Tuntas & Rapi' : 'Grooming Selesai'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Detail Informasi Tiket */}
+                <div className="tracker-details-grid">
+                  <div className="tracker-detail-cell">
+                    <span className="cell-label">Nama Pelanggan</span>
+                    <span className="cell-val bold">{trackResult.customer_name}</span>
+                  </div>
+
+                  <div className="tracker-detail-cell">
+                    <span className="cell-label">Nomor WhatsApp</span>
+                    <span className="cell-val mono">{trackResult.customer_phone || '-'}</span>
+                  </div>
+
+                  <div className="tracker-detail-cell">
+                    <span className="cell-label">Layanan Potong</span>
+                    <span className="cell-val bold">{trackResult.service_name}</span>
+                  </div>
+
+                  <div className="tracker-detail-cell">
+                    <span className="cell-label">Capster Bertugas</span>
+                    <span className="cell-val highlight-capster">✂ {trackResult.capster_name}</span>
+                  </div>
+
+                  <div className="tracker-detail-cell">
+                    <span className="cell-label">Jadwal Sesi</span>
+                    <span className="cell-val bold">
+                      {formatDateIndo(trackResult.booking_date)}, {trackResult.booking_time} WITA
+                    </span>
+                  </div>
+
+                  <div className="tracker-detail-cell">
+                    <span className="cell-label">Total Tarif</span>
+                    <span className="cell-val price-val">
+                      Rp {Number(trackResult.total_price || trackResult.total_amount || trackResult.service_price || 0).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+
+                  <div className="tracker-detail-cell">
+                    <span className="cell-label">Metode &amp; Status Pembayaran</span>
+                    <div className="cell-val cell-badge-row">
+                      <span className="cashier-pay-badge tunai">
+                        {(trackResult.payment_method && trackResult.payment_method !== 'none' ? trackResult.payment_method : 'TUNAI').toUpperCase()}
+                      </span>
+                      <span className={`cashier-pay-status ${trackResult.payment_status === 'paid' ? 'paid' : 'unpaid'}`}>
+                        {trackResult.payment_status === 'paid' ? 'LUNAS' : (trackResult.status === 'cancelled' ? 'BATAL' : 'BAYAR DI KASIR')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="tracker-detail-cell">
+                    <span className="cell-label">Catatan Request</span>
+                    <span className="cell-val notes-val">
+                      {trackResult.notes ? `"${trackResult.notes}"` : 'Tidak ada catatan tambahan'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Aksi Tiket */}
+                <div className="tracker-actions-bar">
+                  <a
+                    href={getWaTrackLink(trackResult)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-whatsapp tracker-wa-btn"
+                  >
+                    <span>💬</span> Hubungi WhatsApp Studio
+                  </a>
+                  <button
+                    type="button"
+                    className="btn btn-outline tracker-print-btn"
+                    onClick={() => window.print()}
+                  >
+                    <span>🖨️</span> Cetak / Simpan Tiket
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-subtle tracker-reset-btn"
+                    onClick={() => {
+                      setTrackResult(null);
+                      setTrackQuery('');
+                    }}
+                  >
+                    Lacak Tiket Lain
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </section>
   );

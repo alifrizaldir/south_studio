@@ -17,6 +17,16 @@ export default function Navbar({ onNavigate }) {
         <div className="navlinks">
           <a href="#layanan">Layanan</a>
           <a href="#booking">Booking Kursi</a>
+          <a 
+            href="#booking" 
+            onClick={(e) => {
+              e.preventDefault();
+              window.dispatchEvent(new CustomEvent('shs:open_ticket_tracker'));
+            }}
+            className="nav-tracker-link"
+          >
+            Cek Tiket
+          </a>
           <a href="#tim">Tim Capster</a>
           <a href="#produk">Produk</a>
           <a href="#galeri">Galeri</a>
@@ -42,6 +52,17 @@ export default function Navbar({ onNavigate }) {
       <div className={`mobile-drawer ${mobileOpen ? 'open' : ''}`} id="mobileDrawer">
         <a href="#layanan" className="drawer-link" onClick={closeMobile}>Katalog Layanan <span>&rsaquo;</span></a>
         <a href="#booking" className="drawer-link" onClick={closeMobile}>Jadwal &amp; Booking <span>&rsaquo;</span></a>
+        <a 
+          href="#booking" 
+          className="drawer-link" 
+          onClick={(e) => {
+            e.preventDefault();
+            closeMobile();
+            window.dispatchEvent(new CustomEvent('shs:open_ticket_tracker'));
+          }}
+        >
+          Cek Tiket &amp; Status Antrean <span>&rsaquo;</span>
+        </a>
         <a href="#tim" className="drawer-link" onClick={closeMobile}>Tim Capster <span>&rsaquo;</span></a>
         <a href="#produk" className="drawer-link" onClick={closeMobile}>Produk Grooming <span>&rsaquo;</span></a>
         <a href="#galeri" className="drawer-link" onClick={closeMobile}>Galeri Potongan <span>&rsaquo;</span></a>

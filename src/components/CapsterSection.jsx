@@ -40,6 +40,39 @@ const DEFAULT_CAPSTERS = [
 export default function CapsterSection({ onSelectCapster }) {
   const [capsters, setCapsters] = useState(DEFAULT_CAPSTERS);
   const [activeIdx, setActiveIdx] = useState(0);
+  const sectionRef = useRef(null);
+  const [isInView, setIsInView] = useState(false);
+
+  // IntersectionObserver untuk memicu animasi smooth saat section masuk ke viewport
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+
+    if (!('IntersectionObserver' in window)) {
+      setIsInView(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsInView(true);
+          } else if (entry.boundingClientRect.top > 0) {
+            // Reset jika discroll kembali ke atas sehingga animasi dapat diputar ulang secara smooth
+            setIsInView(false);
+          }
+        });
+      },
+      {
+        threshold: 0.15,
+        rootMargin: '0px 0px -40px 0px'
+      }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -85,40 +118,44 @@ export default function CapsterSection({ onSelectCapster }) {
   const activeCap = capsters[activeIdx] || capsters[0] || DEFAULT_CAPSTERS[0];
 
   return (
-    <section id="tim" style={{ borderTop: '1px solid var(--line)' }}>
+    <section id="tim" ref={sectionRef} className={isInView ? 'tim-in-view' : ''} style={{ borderTop: '1px solid var(--line)' }}>
       <div className="wrap">
-        <div className="section-header center reveal in">
-          <h2 className="section-title">Tim Kami</h2>
-          <p className="section-sub">Capster berpengalaman, siap mewujudkan gaya yang Anda inginkan.</p>
+        <div className={`section-header center capster-header-anim ${isInView ? 'in-view' : ''}`}>
+          <h2 className="section-title capster-title-anim">Tim Kami</h2>
+          <p className="section-sub capster-sub-anim">Capster berpengalaman, siap mewujudkan gaya yang Anda inginkan.</p>
         </div>
 
         <div className="team-container">
         {/* DESKTOP TRIO GRID (VISIBLE ON DESKTOP > 768px) */}
-        <div className="team-trio-grid team-desktop-only">
-          {capsters.map((c) => (
-            <div
-              key={c.id}
-              className="trio-team-card reveal in"
-              onClick={() => handleSelect(c.bookingValue)}
-              role="button"
-              tabIndex="0"
-              aria-label={`Pilih Capster ${c.name} untuk booking`}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') handleSelect(c.bookingValue);
-              }}
-            >
-              <div className="trio-poster-frame">
-                <img src={c.img} alt={`${c.displayName} - Homies Behind The Chair South Hair Studio`} loading="lazy" />
+        <div className={`team-trio-grid team-desktop-only ${isInView ? 'in-view' : ''}`}>
+          {capsters.map((c, idx) => {
+            // Posisi: idx 0 = kiri (Rezky), idx 1 = tengah (Abi), idx 2 = kanan (Kak Ikmal)
+            const positionClass = idx === 0 ? 'trio-card-left' : idx === 1 ? 'trio-card-center' : 'trio-card-right';
+            return (
+              <div
+                key={c.id}
+                className={`trio-team-card ${positionClass} ${isInView ? 'in-view' : ''}`}
+                onClick={() => handleSelect(c.bookingValue)}
+                role="button"
+                tabIndex="0"
+                aria-label={`Pilih Capster ${c.name} untuk booking`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') handleSelect(c.bookingValue);
+                }}
+              >
+                <div className="trio-poster-frame">
+                  <img src={c.img} alt={`${c.displayName} - Homies Behind The Chair South Hair Studio`} loading="lazy" />
+                </div>
+                <div className="trio-label-row">
+                  <span className="trio-name">{c.displayName}</span>
+                </div>
               </div>
-              <div className="trio-label-row">
-                <span className="trio-name">{c.displayName}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* MOBILE 3D CAROUSEL STAGE SHOWCASE */}
-        <div className="capster-mobile-stage-wrap">
+        <div className={`capster-mobile-stage-wrap ${isInView ? 'in-view' : ''}`}>
           <div className="capster-showcase-top">
             <div className="capster-top-brand">
               <span>SOUTH [CREW]</span>

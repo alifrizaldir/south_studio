@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getSupabaseGallery } from '../lib/supabase';
+import { useInView } from '../hooks/useInView';
 
 const DEFAULT_GALLERY = [
   { img: 'assets/galeri_south/Image (Warriorcut).png', title: 'WARRIORCUT', subtitle: 'Signature Modern Fade & Sharp Edge' },
@@ -15,6 +16,7 @@ const DEFAULT_GALLERY = [
 export default function GallerySection() {
   const [items, setItems] = useState(DEFAULT_GALLERY);
   const [activeImgIndex, setActiveImgIndex] = useState(null);
+  const [galleryRef, galleryInView] = useInView({ threshold: 0.1 });
 
   // Touch swipe support for mobile
   const [touchStart, setTouchStart] = useState(null);
@@ -98,19 +100,20 @@ export default function GallerySection() {
 
   return (
     <>
-      <section id="galeri" style={{ borderTop: '1px solid var(--line)' }}>
+      <section id="galeri" ref={galleryRef} className={`galeri-anim-section ${galleryInView ? 'in-view' : ''}`} style={{ borderTop: '1px solid var(--line)' }}>
         <div className="wrap">
-          <div className="section-header center reveal in">
+          <div className="section-header center galeri-header-anim">
             <h2 className="section-title">Galeri Hasil Cukur</h2>
             <p className="section-sub">Klik foto mana saja untuk melihat detail potongan dan inspirasi gaya.</p>
           </div>
 
           <div className="gallery-container">
-            <div className="gallery-modern-grid reveal in">
+            <div className="gallery-modern-grid">
               {items.map((item, idx) => (
                 <div
                   key={idx}
-                  className="gallery-modern-card"
+                  className="gallery-modern-card gallery-card-anim"
+                  style={{ '--card-idx': idx }}
                   onClick={() => openLightbox(idx)}
                   role="button"
                   tabIndex="0"

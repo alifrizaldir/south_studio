@@ -1,17 +1,21 @@
 import React from 'react';
+import { useInView } from '../hooks/useInView';
 
 export default function LocationSection() {
+  const [locRef, locInView] = useInView({ threshold: 0.12 });
+
   return (
-    <section id="lokasi" style={{ borderTop: '1px solid var(--line)' }}>
+    <section id="lokasi" ref={locRef} className={`lokasi-anim-section ${locInView ? 'in-view' : ''}`} style={{ borderTop: '1px solid var(--line)' }}>
       <div className="wrap">
-        <div className="section-header center reveal in">
+        <div className="section-header center lokasi-header-anim">
           <div className="section-kicker">Kunjungi Studio</div>
           <h2 className="section-title">Lokasi &amp; Ulasan Pelanggan</h2>
           <p className="section-sub">Temukan lokasi barbershop kami dengan mudah di pusat Kota Palopo.</p>
         </div>
 
-        <div className="location-layout reveal in">
-          <div className="location-map-card">
+        <div className="location-layout">
+          {/* Kolom Kiri: Google Maps Interaktif (Meluncur dari arah KIRI) */}
+          <div className="location-map-card lokasi-map-anim">
             <iframe
               className="map-interactive-frame"
               title="Peta Lokasi South Hair Studio Palopo"
@@ -35,9 +39,9 @@ export default function LocationSection() {
             </div>
           </div>
 
-          {/* Verified Reviews Column */}
-          <div>
-            <div className="review-card">
+          {/* Kolom Kanan: Ulasan Pelanggan Terverifikasi (Meluncur dari arah KANAN dengan Stagger) */}
+          <div className="lokasi-reviews-anim">
+            <div className="review-card review-card-item" style={{ '--rev-idx': 0 }}>
               <div className="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
               <div className="review-body">
                 &ldquo;Potongan rapi dan fade sangat halus. Kak Ikmal sangat detail memperhatikan kontur kepala dan rambut. Tempatnya adem dan nyaman.&rdquo;
@@ -48,7 +52,7 @@ export default function LocationSection() {
               </div>
             </div>
 
-            <div className="review-card">
+            <div className="review-card review-card-item" style={{ '--rev-idx': 1 }}>
               <div className="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
               <div className="review-body">
                 &ldquo;Sistem booking kursinya sangat menolong. Sampai di studio langsung masuk kursi tanpa harus menunggu antre berjam-jam saat jam pulang kantor.&rdquo;
@@ -59,7 +63,7 @@ export default function LocationSection() {
               </div>
             </div>
 
-            <div className="review-card">
+            <div className="review-card review-card-item" style={{ '--rev-idx': 2 }}>
               <div className="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
               <div className="review-body">
                 &ldquo;Langganan sejak buka. Cuci rambut dan pijat kepalanya juara setelah dicukur. Pembayaran QRIS cepat dan tercatat otomatis.&rdquo;

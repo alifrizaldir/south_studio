@@ -135,6 +135,7 @@ export default function ProductSection() {
   const [modalProduct, setModalProduct] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isAutoSlideActive, setIsAutoSlideActive] = useState(true);
+  const [isInView, setIsInView] = useState(false);
 
   const sectionRef = useRef(null);
   const isInViewportRef = useRef(false);
@@ -357,6 +358,7 @@ export default function ProductSection() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             isInViewportRef.current = true;
+            setIsInView(true);
             // When user scrolls down into the section from above, trigger smooth entrance glide once
             if (!hasTriggered && entry.boundingClientRect.top < window.innerHeight) {
               hasTriggered = true;
@@ -369,10 +371,13 @@ export default function ProductSection() {
           } else {
             isInViewportRef.current = false;
             hasTriggered = false;
+            if (entry.boundingClientRect.top > 0) {
+              setIsInView(false);
+            }
           }
         });
       },
-      { threshold: 0.25 }
+      { threshold: 0.15 }
     );
 
     observer.observe(sectionEl);
@@ -513,7 +518,7 @@ export default function ProductSection() {
 
   return (
     <>
-      <section id="produk" ref={sectionRef} className="product-showcase-section">
+      <section id="produk" ref={sectionRef} className={`product-showcase-section prod-anim-section ${isInView ? 'in-view' : ''}`}>
         <div className="prod-inner-wrap">
           {/* TOP EDITORIAL SUB-NAV */}
           <div className="prod-showcase-top">

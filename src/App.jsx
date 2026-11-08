@@ -12,7 +12,12 @@ import Toast from './components/Toast';
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 
-// Helper pembersih sesi admin (Session Destroy)
+// ==============================================================================
+// SISTEM ROUTING & KEAMANAN SESI (ROUTE GUARD & SESSION LIFECYCLE)
+// Mengatur hak akses antara halaman publik (Landing Page) dan halaman privat (Kasir & Admin).
+// ==============================================================================
+
+// Helper pembersih sesi admin (Session Destroy) saat logout atau reload
 const destroyAdminSession = () => {
   try {
     sessionStorage.removeItem('shs_auth_token');
@@ -23,6 +28,7 @@ const destroyAdminSession = () => {
   }
 };
 
+// Route Guard: Memeriksa apakah user memiliki token dan status unlock valid di sessionStorage
 const isSessionAuthenticated = () => {
   try {
     return (
@@ -35,6 +41,11 @@ const isSessionAuthenticated = () => {
 };
 
 export default function App() {
+  /**
+   * [ROUTING INITIATOR]
+   * Mendeteksi URL hash (#admin, #login, atau kosong) saat halaman pertama kali dibuka.
+   * Menerapkan prinsip keamanan: Jika URL langsung diketik #admin tanpa login, paksa ke #login.
+   */
   const getInitialRoute = () => {
     const hash = window.location.hash.toLowerCase();
     const pathname = window.location.pathname.toLowerCase();
@@ -54,6 +65,9 @@ export default function App() {
   };
 
   const [route, setRoute] = useState(getInitialRoute);
+
+  // [GLOBAL STATE LIFTING]
+  // Menyimpan pilihan paket cukur dan capster dari katalog agar otomatis terpilih saat scroll ke formulir booking
   const [selectedService, setSelectedService] = useState(null);
   const [selectedCapster, setSelectedCapster] = useState(null);
   const [toastMessage, setToastMessage] = useState('');
